@@ -33,7 +33,7 @@ class ConnectNN:
             encoder_llm_components = self.build_llava()
         elif self.args.elm == "fuyu":
             encoder_llm_components = self.build_fuyu()
-        else:
+        elif self.args.elm == "ecg_byte":
             encoder_llm_components = {"elm": self.llm_components["llm"]}
         return merge_dicts(
             self.encoder_components,
