@@ -1,5 +1,5 @@
 <h2 align="center">
-  A Unified Framework for Benchmarking Generative Electrocardiogram-Language Models (ELMs)
+  A Training and Evaluation Framework for ECG-Language Models (ELMs)
 </h2>
 
 <div align="center">
