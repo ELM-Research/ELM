@@ -1,5 +1,29 @@
-# ECG-Language Models (ELMs)
+<h2 align="center">
+  A Unified Framework for Benchmarking Generative Electrocardiogram-Language Models (ELMs)
+</h2>
 
+[![DOI](https://zenodo.org/badge/907475121.svg)](https://doi.org/10.5281/zenodo.15299517)
+
+<div align="center">
+  <img src="./assets/fig1_2.png" alt="Our pipeline.">
+</div>
+
+## News
+- **[February 23, 2026]** We have officially moved from [willxxy/ECG-Bench](https://github.com/willxxy/ECG-Bench/) to [ELM-Researc/ELM](https://github.com/ELM-Research/ELM). There are major updates to the documentation and flow of the code. Please read the documentation and feel free to post any issues!
+
+<!-- <details>
+  <summary><strong>Show Older News</strong></summary>
+
+- **[October 16, 2025]** We have finished the refactor, for new and old users, please refer to the documentation below and the [brief release notes](https://github.com/willxxy/ECG-Bench/releases/tag/0.0.5).
+- **[October 3, 2025]** We are currently going under a big refactor for easier use of the repository. We thank you for your patience and will update once its done!
+- **[October 3, 2025]** We have released our paper [Retrieval-Augmented Generation for Electrocardiogram-Language Models](https://arxiv.org/abs/2510.00261). There is currently a [pull request](https://github.com/willxxy/ECG-Bench/pull/3) for the updated integration of RAG utilized with ELMs in the paper. Feel free to check it out.
+- **[August 5, 2025]** We released official splits of ELM datasets on Hugging Face. Feel free to check them out [here](#hugging-face-dataset-5-fold-stratified-splits)!
+- **[May 24, 2025]** We release our paper ["Signal, Image, or Symbolic: Exploring the Best Input Representation for Electrocardiogram-Language Models Through a Unified Framework"](https://arxiv.org/abs/2505.18847) with some interesting results when comparing input representations and training paradigms for ELMs! Check it out.
+- **[April 5, 2025]** We open source ECG-Bench for training and evaluating ELMs!
+</details> -->
+
+
+## Overview <a name="overview"></a>
 A research framework for finetuning and evaluating ECG-language models (ELMs). Supports multiple architectures, training objectives, and data representations with distributed training out of the box.
 Prepare datasets with [ecg_preprocess](https://github.com/ELM-Research/ecg_preprocess) before use. Additionally, if you want to pretrain an ECG encoder, please view [ecg_nn](https://github.com/ELM-Research/ecg_nn).
 
@@ -8,7 +32,7 @@ If there are any questions or bugs, please do not hesitate to reach out to wjhan
 
 > **Status:** Beta.
 
-## Setup
+## Setup <a name="setup"></a>
 We use torch 2.9 with cuda 12.8 and primarily use H100 GPUs.
 
 
@@ -26,7 +50,7 @@ maturin develop --release
 
 If Rust is not installed: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain=1.82.0 -y`
 
-## Data
+## ECG Datasets <a name="data"></a>
 
 First, preprocess the ECGs using the [ecg_preprocess](https://github.com/ELM-Research/ecg_preprocess) repository.
 The structure in which the `data` folder should be in is the following:
@@ -65,7 +89,7 @@ Note that we support mixing different datasets via specifying multiple datas lik
 --data ecg-qa-ptbxl-250-2500 ecg-qa-mimic-iv-ecg-250-2500
 ```
 
-## Representations
+## ECG Representations <a name="representation"></a>
 
 | `--data_representation` | Description |
 |-------------------------|-------------|
@@ -74,7 +98,7 @@ Note that we support mixing different datasets via specifying multiple datas lik
 | `stacked_signal` | Synthetic three-channel version of `signal`, denoted $X \in \mathbb{R}^{C \times L \times 3}$, by stacking `signal` three times along the color dimension |
 | `rgb` | Derived from `signal` via plotting and is represented as a tensor $X \in \mathbb{R}^{H \times W \times C′}$, where `H` and `W` denote the image height and width, respectively, and `C′` is the number of color channels |
 
-## LLMs
+## LLMs <a name="llms"></a>
 We utilize the following pretrained LLMs from HuggingFace.
 
 | LLM | `--llm` |
@@ -85,7 +109,7 @@ We utilize the following pretrained LLMs from HuggingFace.
 | [Qwen 2.5](https://arxiv.org/abs/2412.15115) | `qwen2.5-7b-instruct` |
 | [Qwen 2.5](https://arxiv.org/abs/2412.15115) | `qwen2.5-1.5b-instruct` |
 
-## Encoders
+## Encoders <a name="encoders"></a>
 
 ### ECG Encoders
 We utilize the following ECG-specific encoders.
