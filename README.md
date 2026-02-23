@@ -211,6 +211,29 @@ uv run src/main_evaluator.py \
 | `--perturb` | `noise`, `zeros`, or `only_text` |
 | `--optimizer` | `adam`, `adamw`, `muon` |
 
+## Contributions <a name="contributions"></a>
+
+We welcome contributions to the repository! Please feel free to open an issue or pull request for any bugs or features you would like to add. We are always looking for new ECG datasets to benchmark our methods on. If you have any recommendations, please let us know! Also, a good place to start is by looking at the [TODO](#todo) section.
+
+For most processes, we have a `--dev` flag to run in a smaller scale and add some verbosity for debugging. Feel free to add this flag when needed! 
+
+### Contributors
+
+We thank the following people for their contributions to the repository:
+
+- [Atharva Mhaskar](https://www.linkedin.com/in/atharva-mhaskar/)
+- [Xiaoyu (Simon) Song](https://www.linkedin.com/in/xiaoyu-song-507b89301/)
+- [Tony Chen](https://www.linkedin.com/in/tonychen06/)
+
+## Acknowledgements <a name="ack"></a>
+This work is done in collaboration with the Mario Lemieux Center for Heart Rhythm Care at Allegheny General Hospital.
+
+We thank Chaojing Duan, Michael A. Rosenberg, Emerson Liu, Ding Zhao, Hyoeun Kang, Wenhao Ding, Haohong Lin, Shiqi Liu, Xiaoyu (Simon) Song, Tony Chen, Atharva Mhaskar, Zhepeng Cen, Yihang Yao, and Dylan Leong for their helpful discussions, feedbacks, and support in developing ECG-Bench.
+
+We thank the authors of [ECG-Byte](https://github.com/willxxy/ECG-Byte), [MERL](https://github.com/cheliu-computation/MERL-ICML2024), [ST-MEM](https://github.com/bakqui/ST-MEM), [ECG-QA](https://github.com/Jwoo5/ecg-qa), [ECG-Chat](https://github.com/YubaoZhao/ECG-Chat), [PULSE](https://github.com/AIMedLab/PULSE), and [GEM](https://github.com/lanxiang1017/GEM) for their code and publicly released datasets.
+
+Lastly, we thank [HuggingFace](https://huggingface.co/) for providing the APIs for the models.
+
 ## License
 
 MIT, except `st_mem.py`, `mlae.py`, `mtae.py` which are [CC BY-NC 4.0](https://github.com/bakqui/ST-MEM?tab=License-1-ov-file#readme).
