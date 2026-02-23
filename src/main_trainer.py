@@ -11,7 +11,7 @@ from runners.trainer import run_train
 
 from utils.checkpoint_manager import CheckpointManager
 from utils.seed_manager import set_seed
-from utils.gpu_manager import is_main, init_dist, cleanup, GPUSetup
+from utils.gpu_manager import is_main, init_dist, cleanup, GPUSetup, broadcast_value
 from utils.dir_file_manager import setup_experiment_folders
 from utils.wandb_manager import setup_wandb, cleanup_wandb
 
@@ -63,13 +63,16 @@ def main():
             checkpoint_manager = CheckpointManager(run_folder, args)
         for epoch in range(args.epochs):
             train_result = run_train(elm, optimizer, dataloader, epoch, args, checkpoint_manager)
+            should_stop = False
             if checkpoint_manager and is_main():
                 if checkpoint_manager.save_epoch(train_result["average_loss"]):
                     checkpoint_manager.save_checkpoint(elm, optimizer, epoch, -1, is_best=True, prefix="epoch_")
                 if checkpoint_manager.stop_early():
-                    if is_main():
-                        print(f"Early stopping at epoch {epoch}")
-                    break
+                    print(f"Early stopping at epoch {epoch}")
+                    should_stop = True
+            should_stop = broadcast_value(should_stop, src=0)
+            if should_stop:
+                break
         if is_main() and not args.dev:
             with open(f"{run_folder}/DONE.txt", "w") as _:
                 pass
