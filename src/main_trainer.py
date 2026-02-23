@@ -67,7 +67,7 @@ def main():
             if checkpoint_manager and is_main():
                 if checkpoint_manager.save_epoch(train_result["average_loss"]):
                     checkpoint_manager.save_checkpoint(elm, optimizer, epoch, -1, is_best=True, prefix="epoch_")
-                if checkpoint_manager.stop_early():
+                if args.early_stopping and checkpoint_manager.stop_early():
                     print(f"Early stopping at epoch {epoch}")
                     should_stop = True
             should_stop = broadcast_value(should_stop, src=0)

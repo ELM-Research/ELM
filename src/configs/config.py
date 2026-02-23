@@ -57,6 +57,7 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--weight_decay", type=float, default=1e-2, help="Weight decay")
         parser.add_argument("--patience", type=int, default=5, help="Patience for early stopping")
         parser.add_argument("--patience_delta", type=float, default=0.1, help="Delta for early stopping")
+        parser.add_argument("--early_stopping", action="store_true", default=False, help="Enable early stopping")
         parser.add_argument("--beta1", type=float, default=0.9, help="Beta1 for optimizer")
         parser.add_argument("--beta2", type=float, default=0.99, help="Beta2 for optimizer")
         parser.add_argument("--eps", type=float, default=1e-8, help="Epsilon for optimizer")
