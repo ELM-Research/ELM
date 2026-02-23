@@ -233,6 +233,15 @@ uv run src/main_evaluator.py \
 | `--perturb` | `noise`, `zeros`, or `only_text` |
 | `--optimizer` | `adam`, `adamw`, `muon` |
 
+## Research
+We list the research that has been conducted using this repository. Please feel free to add your own research here!
+
+- [ECG-Byte: A Tokenizer for End-to-End Generative Electrocardiogram Language Modeling
+](https://arxiv.org/abs/2412.14373)
+- [Signal, Image, or Symbolic: Exploring the Best Input Representation for Electrocardiogram-Language Models Through a Unified Framework](https://arxiv.org/abs/2505.18847)
+- [Retrieval-Augmented Generation for Electrocardiogram-Language Models](https://arxiv.org/abs/2510.00261)
+- [Encoder-Free ECG-Language Models](https://arxiv.org/abs/2601.18798)
+
 ## Contributions <a name="contributions"></a>
 
 We welcome contributions to the repository! Please feel free to open an issue or pull request for any bugs or features you would like to add. We are always looking for new ECG datasets to benchmark our methods on. If you have any recommendations, please let us know! Also, a good place to start is by looking at the [TODO](#todo) section.
