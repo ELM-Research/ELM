@@ -224,10 +224,7 @@ uv run src/main_evaluator.py \
 
 | Flag | Description |
 |------|-------------|
-| `--distributed` | Multi-GPU DDP training |
-| `--ema` | Exponential moving average |
 | `--torch_compile` | `torch.compile` the model |
-| `--wandb` | Log to Weights & Biases |
 | `--data_subset` | Use dataset fraction for quick runs |
 | `--augment_ecg` / `--augment_rgb` | Enable augmentations |
 | `--perturb` | `noise`, `zeros`, or `only_text` |
