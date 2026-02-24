@@ -128,7 +128,7 @@ class VizManager:
 
             # Lead label
             ax.text(x_off + 0.05, y_off + row_height * 0.3,
-                    lead_names[lead_idx], fontsize=8, fontweight='bold',
+                    lead_names[lead_idx], fontsize=20, fontweight='bold',
                     color=(0.2, 0.2, 0.2), zorder=4)
 
             # Column separator
