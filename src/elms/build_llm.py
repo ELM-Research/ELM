@@ -1,5 +1,5 @@
 import argparse
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoConfig
 from peft import LoraConfig, TaskType, get_peft_model
 
 from configs.constants import HF_LLMS
@@ -45,11 +45,16 @@ class BuildLLM:
     def build_hf_llm(
         self,
     ):
-        hf_llm = AutoModelForCausalLM.from_pretrained(
-            HF_LLMS[self.args.llm]["model"],
-            dtype=HF_LLMS[self.args.llm]["native_dtype"],
-            attn_implementation=self.args.attention_type,
-        )
+        if self.args.scratch:
+            config = AutoConfig.from_pretrained(HF_LLMS[self.args.llm]["model"])
+            config._attn_implementation = self.args.attention_type
+            hf_llm = AutoModelForCausalLM.from_config(config).to(HF_LLMS[self.args.llm]["native_dtype"])
+        else:
+            hf_llm = AutoModelForCausalLM.from_pretrained(
+                HF_LLMS[self.args.llm]["model"],
+                dtype=HF_LLMS[self.args.llm]["native_dtype"],
+                attn_implementation=self.args.attention_type,
+            )
         HF_LLMS[self.args.llm]["model_hidden_size"] = hf_llm.config.hidden_size
         assert HF_LLMS[self.args.llm]["model_hidden_size"] is not None, print("model_hidden_size")
         hf_llm = self.resize_and_report_embeddings(hf_llm)

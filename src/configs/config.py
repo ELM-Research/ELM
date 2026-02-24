@@ -24,6 +24,7 @@ def get_args(mode: Mode) -> argparse.Namespace:
             nargs="+",
             required=True,
         )
+        parser.add_argument("--scratch", action="store_true", default=False, help="Use randomly initialized LLM instead of pretrained weights")
         parser.add_argument("--data_subset", type=float, default=None, help="Subset of data to use (between 0 and 1)")
         parser.add_argument("--encoder", type=str, default=None, help="Neural Network Encoder Model")
         parser.add_argument("--llm", type=str, default=None, help="Large Language Model")
