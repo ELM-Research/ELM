@@ -56,9 +56,9 @@ The structure in which the `data` folder should be in is the following:
 ```
 data
 ├── csn
-│   ├── preprocessed_1250_250
-│   ├── preprocessed_500_250
-│   └── preprocessed_2500_250
+│   ├── preprocessed_1250
+│   ├── preprocessed_500
+│   └── preprocessed_2500
 ├── cpsc
 │   └── ...
 ├── ptb_xl
