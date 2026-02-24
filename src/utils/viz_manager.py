@@ -71,7 +71,7 @@ class VizManager:
             spine.set_visible(False)
 
     def plot_ecg(self, ecg, sample_rate=250, lead_names=None, lead_order=None,
-                columns=2, row_height=1.5, title=None, style='color'):
+                columns=1, row_height=2.5, title=None, style='color'):
         """Create a clinical multi-lead ECG figure.
 
         Args:
@@ -107,8 +107,12 @@ class VizManager:
         ax.set_facecolor(bg_color)
 
         x_max = secs * columns
-        y_min = -rows * row_height
-        y_max = row_height * 0.25
+        top_pad = row_height * 0.8
+        bottom_pad = row_height * 0.8
+        # y_min = -rows * row_height
+        # y_max = row_height * 0.25
+        y_min = -(rows - 1) * row_height - bottom_pad
+        y_max = top_pad
 
         self._make_grid(ax, (0, x_max), (y_min, y_max))
 
