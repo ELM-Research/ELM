@@ -37,6 +37,31 @@ HF_DATASETS = [
     "ecg-instruct-pulse-250-2500",
     # ECG Grounding https://github.com/lanxiang1017/GEM
     "ecg-grounding-250-2500",
+    # Synthetic ECG Comprehension Datasets
+    "ecg-comp-ecg-noise-flatline-20000-250-2500",
+    "ecg-comp-ecg-noise-flatline-40000-250-2500",
+    "ecg-comp-ecg-noise-flatline-60000-250-2500",
+    #
+    "ecg-comp-ecg-flatline-40000-250-2500",
+    "ecg-comp-ecg-flatline-80000-250-2500",
+    "ecg-comp-ecg-flatline-120000-250-2500",
+    "ecg-comp-ecg-flatline-30000-250-2500",
+    "ecg-comp-ecg-flatline-60000-250-2500",
+    "ecg-comp-ecg-flatline-90000-250-2500",
+    #
+    "ecg-comp-ecg-noise-40000-250-2500",
+    "ecg-comp-ecg-noise-80000-250-2500",
+    "ecg-comp-ecg-noise-120000-250-2500",
+    "ecg-comp-ecg-noise-30000-250-2500",
+    "ecg-comp-ecg-noise-60000-250-2500",
+    "ecg-comp-ecg-noise-90000-250-2500",
+    #
+    "ecg-comp-noise-flatline-40000-250-2500",
+    "ecg-comp-noise-flatline-80000-250-2500",
+    "ecg-comp-noise-flatline-120000-250-2500",
+    "ecg-comp-noise-flatline-30000-250-2500",
+    "ecg-comp-noise-flatline-60000-250-2500",
+    "ecg-comp-noise-flatline-90000-250-2500",
 ]
 
 HF_LLMS = {

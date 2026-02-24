@@ -14,9 +14,14 @@ class StackedSignal(Base):
 
     def __getitem__(self, index):
         instance = self.data[index]
-        ecg_np_file = self.fm.open_npy(instance["ecg_path"])
-        ecg_signal = ecg_np_file["ecg"]
-        diagnostic_report = ecg_np_file["report"]
+        if instance["ecg_path"] == "noise":
+            ecg_signal = np.random.normal(loc=0.0, scale=1.0, size=(12, self.args.segment_len))
+        elif instance["ecg_path"] == "flatline":
+            c = np.random.choice(np.arange(10))
+            ecg_signal = np.full((12, self.args.segment_len), c)
+        else:
+            ecg_np_file = self.fm.open_npy(instance["ecg_path"])
+            ecg_signal = ecg_np_file["ecg"]
 
         ### AUGMENTATIONS and PERTURBATIONS ###
         if self.args.augment_ecg:
@@ -28,6 +33,7 @@ class StackedSignal(Base):
         ecg_stacked_signal = self.signal_to_stacked_signal(ecg_signal)
 
         if self.encoder_tokenizer is not None:
+            diagnostic_report = ecg_np_file["report"]
             if self.args.encoder == "clip-vit-base-patch32":
                 encoder_tokenizer_out = self.prepare_clip_input(diagnostic_report, ecg_stacked_signal)
             elif self.args.encoder == "siglip2-so400m-patch16-naflex":

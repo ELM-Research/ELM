@@ -14,7 +14,14 @@ class Symbolic(Base):
 
     def __getitem__(self, index):
         instance = self.data[index]
-        ecg_signal = self.fm.open_npy(instance["ecg_path"])["ecg"]
+        if instance["ecg_path"] == "noise":
+            ecg_signal = np.random.normal(loc=0.0, scale=1.0, size=(12, self.args.segment_len))
+        elif instance["ecg_path"] == "flatline":
+            c = np.random.choice(np.arange(10))
+            ecg_signal = np.full((12, self.args.segment_len), c)
+        else:
+            ecg_np_file = self.fm.open_npy(instance["ecg_path"])
+            ecg_signal = ecg_np_file["ecg"]
 
         ### AUGMENTATIONS and PERTURBATIONS ###
         if self.args.augment_ecg:

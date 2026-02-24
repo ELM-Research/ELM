@@ -1,5 +1,6 @@
 import torch
 from typing import Optional
+import numpy as np
 
 from dataloaders.data_representation.base import Base
 from utils.gpu_manager import is_main
@@ -12,9 +13,14 @@ class Signal(Base):
 
     def __getitem__(self, index):
         instance = self.data[index]
-        ecg_np_file = self.fm.open_npy(instance["ecg_path"])
-        ecg_signal = ecg_np_file["ecg"]
-        ecg_signal, _ = self.normalize(ecg_signal)
+        if instance["ecg_path"] == "noise":
+            ecg_signal = np.random.normal(loc=0.0, scale=1.0, size=(12, self.args.segment_len))
+        elif instance["ecg_path"] == "flatline":
+            c = np.random.choice(np.arange(10))
+            ecg_signal = np.full((12, self.args.segment_len), c)
+        else:
+            ecg_np_file = self.fm.open_npy(instance["ecg_path"])
+            ecg_signal = ecg_np_file["ecg"]
 
         ### AUGMENTATIONS and PERTURBATIONS ###
         if self.args.augment_ecg:
@@ -23,6 +29,8 @@ class Signal(Base):
             ecg_signal = self.blackout_ecg(ecg_signal)
         elif self.args.perturb == "noise":
             ecg_signal = self.gauss_noise_ecg(ecg_signal)
+
+        ecg_signal, _ = self.normalize(ecg_signal)
         encoder_tokenizer_out = {"ecg_signal": self.transform_ecg_signal(ecg_signal)}
 
         text = instance["text"]
