@@ -214,11 +214,12 @@ class Base(Dataset):
         clipped_normalized = np.clip(normalized, 0, 1)
         return clipped_normalized, (min_vals, max_vals)
 
-    def blackout_ecg(self, signal):
-        return np.zeros_like(signal)
+    def blackout_ecg(self):
+        c = np.random.choice(np.arange(10))
+        return np.full((12, self.args.segment_len), c)
 
-    def gauss_noise_ecg(self, signal):
-        return np.random.randn(*signal.shape)
+    def gauss_noise_ecg(self):
+        return np.random.randn(12, self.args.segment_len)
 
     def augment_ecg(self, signal):
         if random.random() < 0.5:

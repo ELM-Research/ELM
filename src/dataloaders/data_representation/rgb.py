@@ -26,23 +26,19 @@ class RGB(Base):
 
     def __getitem__(self, index):
         instance = self.data[index]
-        if instance["ecg_path"] == "noise":
-            ecg_signal = np.random.normal(loc=0.0, scale=1.0, size=(12, self.args.segment_len))
-        elif instance["ecg_path"] == "flatline":
-            c = np.random.choice(np.arange(10))
-            ecg_signal = np.full((12, self.args.segment_len), c)
+        if instance["ecg_path"] == "noise" or self.args.perturb == "noise":
+            ecg_signal = self.gauss_noise_ecg()
+        elif instance["ecg_path"] == "flatline" or self.args.perturb == "zeros":
+            ecg_signal = self.blackout_ecg()
         else:
             ecg_np_file = self.fm.open_npy(instance["ecg_path"])
             ecg_signal = ecg_np_file["ecg"]
+            if self.args.augment_ecg:
+                ecg_signal = self.augment_ecg(ecg_signal)
+
         if self.args.dev and is_main():
             self.viz.plot_2d_ecg(ecg_signal, "./ecg_signal.png")
         ### AUGMENTATIONS and PERTURBATIONS ###
-        if self.args.augment_ecg:
-            ecg_signal = self.augment_ecg(ecg_signal)
-        elif self.args.perturb == "zeros":
-            ecg_signal = self.blackout_ecg(ecg_signal)
-        elif self.args.perturb == "noise":
-            ecg_signal = self.gauss_noise_ecg(ecg_signal)
         ecg_image = self.signal_to_image(ecg_signal)
 
         if self.encoder_tokenizer is not None:

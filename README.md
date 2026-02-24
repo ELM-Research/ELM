@@ -88,7 +88,7 @@ Note that we support mixing different datasets via specifying multiple datas lik
 ```
 
 We also released synthetic classification datasets on Hugging Face for signal-type identification tasks, where the model predicts whether the input signal is ECG, noise, or flatline. Dataset names follow this format: ecg-comp-ecg-noise-flatline-20000-250-2500. In this example, the dataset contains 20,000 instances per class (ECG, noise, and flatline) in both the training and test splits. We also provide binary classification variants, such as ecg-comp-noise-flatline-30000-250-2500. This indicates a binary task with noise and flatline classes, with 30,000 instances per class across the train and test splits.
-For additional datasets and task details, see HF_DATASETS of `src/configs/constants.py` and `src/dataloaders/system_prompts/system_prompt_ecg_mc.txt` (multiclass) and `src/dataloaders/system_prompts/system_prompt_ecg_bc.txt` (binary classification).
+For additional datasets and task details, see HF_DATASETS of `src/configs/constants.py` and `src/dataloaders/system_prompts/` for additional task details.
 
 ## ECG Representations <a name="representation"></a>
 

@@ -2,6 +2,7 @@ import numpy as np
 import scipy.stats as stats
 from tqdm import tqdm
 import torch
+from collections import Counter
 
 from utils.gpu_manager import is_main, train_dev_break
 
@@ -23,6 +24,66 @@ def evaluate_strings(references, hypotheses):
         "ACC": calculate_acc(valid_refs, valid_hyps),
     }
 
+def compute_classification_metrics(references, hypotheses):
+    valid_classes = set(references)
+    hypotheses = [h if h in valid_classes else "Other" for h in hypotheses]
+    has_other = "Other" not in valid_classes and any(h == "Other" for h in hypotheses)
+    row_classes = sorted(valid_classes)
+    col_classes = row_classes + (["Other"] if has_other else [])
+    cm = Counter((r, h) for r, h in zip(references, hypotheses))
+    per_class_acc = {}
+    for c in row_classes:
+        total = sum(1 for r in references if r == c)
+        correct = cm[(c, c)]
+        per_class_acc[c] = correct / total if total > 0 else 0.0
+    confusion_matrix = {c: {p: cm[(c, p)] for p in col_classes} for c in row_classes}
+    return per_class_acc, confusion_matrix
+
+def print_classification_metrics(per_class_acc, confusion_matrix):
+    row_classes = list(confusion_matrix.keys())
+    col_classes = list(next(iter(confusion_matrix.values())).keys())
+    print("\n=== Per-Class Accuracy ===")
+    for c in row_classes:
+        total = sum(confusion_matrix[c].values())
+        correct = confusion_matrix[c][c]
+        print(f"  {c}: {per_class_acc[c]:.4f} ({correct}/{total})")
+    w = max(6, max(len(c) for c in col_classes) + 2)
+    print("\n=== Confusion Matrix (rows=true, cols=predicted) ===")
+    header = " " * w + "".join(f"{c:>{w}}" for c in col_classes)
+    print(header)
+    for c in row_classes:
+        row = f"{c:>{w}}" + "".join(f"{confusion_matrix[c][p]:>{w}}" for p in col_classes)
+        print(row)
+
+def save_confusion_matrix_png(confusion_matrix, path):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    row_classes = list(confusion_matrix.keys())
+    col_classes = list(next(iter(confusion_matrix.values())).keys())
+    matrix = np.array([[confusion_matrix[r][c] for c in col_classes] for r in row_classes])
+    row_sums = matrix.sum(axis=1, keepdims=True)
+    normed = np.divide(matrix, row_sums, where=row_sums != 0, out=np.zeros_like(matrix, dtype=float))
+
+    n_rows, n_cols = len(row_classes), len(col_classes)
+    fig, ax = plt.subplots(figsize=(max(4, n_cols * 1.5), max(4, n_rows * 1.5)))
+    ax.imshow(normed, cmap="Blues", vmin=0, vmax=1)
+    for i, r in enumerate(row_classes):
+        for j, c in enumerate(col_classes):
+            ax.text(j, i, f"{matrix[i, j]}\n({normed[i, j]:.1%})", ha="center", va="center",
+                    color="white" if normed[i, j] > 0.5 else "black", fontsize=10)
+    ax.set_xticks(range(n_cols))
+    ax.set_yticks(range(n_rows))
+    ax.set_xticklabels(col_classes)
+    ax.set_yticklabels(row_classes)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("True")
+    ax.set_title("Confusion Matrix")
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    print(f"Saved confusion matrix to {path}")
 
 def run_statistical_analysis(all_seeds_results):
     metrics = list(all_seeds_results[0]["metrics"].keys())
@@ -126,13 +187,21 @@ def evaluate(elm, dataloader, args):
                         all_hyps.append(gen_txt)
             if train_dev_break(getattr(args, "dev", False), batch, 0):
                 break
+            if batch_idx == 10:
+                break
     results = evaluate_strings(all_refs, all_hyps)
     print("\n=== N-Turn Evaluation (generated vs. gold response only) ===")
     print(f"Pairs: {len(all_refs)}")
     print(f"ACC: {results['ACC']:.4f}")
-    return {
+    out = {
         "num_pairs": len(all_refs),
         "metrics": results,
         "references": all_refs,
         "hypotheses": all_hyps,
     }
+    if any(d.startswith("ecg-comp") for d in args.data):
+        per_class_acc, confusion_matrix = compute_classification_metrics(all_refs, all_hyps)
+        print_classification_metrics(per_class_acc, confusion_matrix)
+        results["per_class_acc"] = per_class_acc
+        out["confusion_matrix"] = confusion_matrix
+    return out
