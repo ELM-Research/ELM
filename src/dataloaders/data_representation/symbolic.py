@@ -20,7 +20,7 @@ class Symbolic(Base):
             ecg_signal = self.blackout_ecg()
         else:
             ecg_np_file = self.fm.open_npy(instance["ecg_path"])
-            ecg_signal = ecg_np_file["ecg"]
+            ecg_signal = ecg_np_file["ecg"][self.args.leads]
             if self.args.augment_ecg:
                 ecg_signal = self.augment_ecg(ecg_signal)
 

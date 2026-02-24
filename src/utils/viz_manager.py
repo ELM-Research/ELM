@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 from matplotlib.ticker import MultipleLocator
 from math import ceil
+from configs.constants import PTB_ORDER
 
-LEAD_NAMES = ['I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6']
 GRID_MAJOR = (0.85, 0.25, 0.25, 0.45)
 GRID_MINOR = (0.90, 0.70, 0.70, 0.35)
 SIGNAL     = (0.0, 0.0, 0.55)
@@ -93,7 +93,7 @@ class VizManager:
 
         n_leads, n_samples = ecg.shape
         lead_order = lead_order or list(range(n_leads))
-        lead_names = lead_names or LEAD_NAMES[:n_leads]
+        lead_names = lead_names or PTB_ORDER[:n_leads]
         secs = n_samples / sample_rate
         rows = ceil(len(lead_order) / columns)
         t = np.linspace(0, secs, n_samples, endpoint=False)

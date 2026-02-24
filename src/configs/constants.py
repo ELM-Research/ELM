@@ -8,6 +8,7 @@ Mode = Literal["train", "eval", "inference", "post_train"]
 # Directories
 RUNS_DIR = "./src/runs"
 CONFIG_DIR = "./src/configs"
+PTB_ORDER = ["I", "II", "III", "aVL", "aVR", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
 
 # Hugging Face
 HF_DATASETS = [

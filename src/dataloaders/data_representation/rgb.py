@@ -8,7 +8,7 @@ from typing import Optional
 from dataloaders.data_representation.base import Base
 from utils.viz_manager import VizManager
 from utils.gpu_manager import is_main
-
+from configs.constants import PTB_ORDER
 
 class RGB(Base):
     def __init__(self, data, llm_tokenizer_components,
@@ -23,6 +23,7 @@ class RGB(Base):
                                 T.RandomApply([T.GaussianBlur(kernel_size=5, sigma=(0.0, 1.5))], p=0.5),
                                 T.RandomApply([T.ColorJitter(hue=0.08, saturation=0.3)], p=0.5),
                             ])
+        self.lead_names = [PTB_ORDER[i] for i in self.args.leads]
 
     def __getitem__(self, index):
         instance = self.data[index]
@@ -32,12 +33,12 @@ class RGB(Base):
             ecg_signal = self.blackout_ecg()
         else:
             ecg_np_file = self.fm.open_npy(instance["ecg_path"])
-            ecg_signal = ecg_np_file["ecg"]
+            ecg_signal = ecg_np_file["ecg"][self.args.leads]
             if self.args.augment_ecg:
                 ecg_signal = self.augment_ecg(ecg_signal)
 
         if self.args.dev and is_main():
-            self.viz.plot_2d_ecg(ecg_signal, "./ecg_signal.png")
+            self.viz.plot_2d_ecg(ecg_signal, "./ecg_signal.png", lead_names = self.lead_names)
         ### AUGMENTATIONS and PERTURBATIONS ###
         ecg_image = self.signal_to_image(ecg_signal)
 
@@ -100,7 +101,7 @@ class RGB(Base):
 
     ### SIGNAL TO IMAGE FUNCTIONS ###
     def signal_to_image(self, ecg_signal: np.array):
-        image = self.viz.get_plot_as_image(ecg_signal, 250)  # 250 Hz
+        image = self.viz.get_plot_as_image(ecg_signal, 250, lead_names = self.lead_names)  # 250 Hz
         if self.args.augment_rgb and random.random() < 0.6:
             return self.augment_image(image)
         return Image.fromarray(image)

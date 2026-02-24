@@ -1,6 +1,5 @@
 import torch
 from typing import Optional
-import numpy as np
 
 from dataloaders.data_representation.base import Base
 from utils.gpu_manager import is_main
@@ -19,7 +18,7 @@ class Signal(Base):
             ecg_signal = self.blackout_ecg()
         else:
             ecg_np_file = self.fm.open_npy(instance["ecg_path"])
-            ecg_signal = ecg_np_file["ecg"]
+            ecg_signal = ecg_np_file["ecg"][self.args.leads]
             if self.args.augment_ecg:
                 ecg_signal = self.augment_ecg(ecg_signal)
 
