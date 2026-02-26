@@ -74,19 +74,22 @@ class BuildEncoder:
 
     def prepare_mlae(self):
         from elms.ecg_encoders.mlae.mlae import MLAEConfig, MLAE
-        cfg = MLAEConfig(seq_len=self.args.segment_len) # Each lead is patch, so default
+        cfg = MLAEConfig(seq_len=self.args.segment_len,
+                         num_encoder_tokens=self.args.num_encoder_tokens) # Each lead is patch, so default
         model = MLAE(cfg)
         return {"encoder": model}
 
     def prepare_mtae(self):
         from elms.ecg_encoders.mtae.mtae import MTAEConfig, MTAE
-        cfg = MTAEConfig(seq_len=self.args.segment_len, patch_size=self.calculate_patch_size())
+        cfg = MTAEConfig(seq_len=self.args.segment_len, patch_size=self.calculate_patch_size(),
+                         num_encoder_tokens=self.args.num_encoder_tokens)
         model = MTAE(cfg)
         return {"encoder": model}
 
     def prepare_st_mem(self):
         from elms.ecg_encoders.st_mem.st_mem import ST_MEMConfig, ST_MEM
-        cfg = ST_MEMConfig(seq_len=self.args.segment_len, patch_size=self.calculate_patch_size())
+        cfg = ST_MEMConfig(seq_len=self.args.segment_len, patch_size=self.calculate_patch_size(),
+                           num_encoder_tokens=self.args.num_encoder_tokens)
         model = ST_MEM(cfg)
         return {"encoder": model}
 
