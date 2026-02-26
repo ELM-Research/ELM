@@ -481,6 +481,7 @@ class ST_MEM(nn.Module):
 
         self.decoder_norm = norm_layer(decoder_embed_dim)
         self.decoder_head = nn.Linear(decoder_embed_dim, patch_size)
+        self.avgpool = nn.AdaptiveAvgPool1d(cfg.num_encoder_tokens)
         # --------------------------------------------------------------------------
         self.norm_pix_loss = norm_pix_loss
         self.initialize_weights()
@@ -514,49 +515,7 @@ class ST_MEM(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    def patchify(self, series):
-        """series: (batch_size, num_leads, seq_len)
-        x: (batch_size, num_leads, n, patch_size)
-        """
-        p = self.patch_size
-        assert series.shape[2] % p == 0
-        x = rearrange(series, "b c (n p) -> b c n p", p=p)
-        return x
-
-    def unpatchify(self, x):
-        """x: (batch_size, num_leads, n, patch_size)
-        series: (batch_size, num_leads, seq_len)
-        """
-        series = rearrange(x, "b c n p -> b c (n p)")
-        return series
-
-    def random_masking(self, x, mask_ratio):
-        """Perform per-sample random masking by per-sample shuffling.
-        Per-sample shuffling is done by argsort random noise.
-        x: (batch_size, num_leads, n, embed_dim)
-        """
-        b, num_leads, n, d = x.shape
-        len_keep = int(n * (1 - mask_ratio))
-
-        noise = torch.rand(b, num_leads, n, device=x.device)  # noise in [0, 1]
-
-        # sort noise for each sample
-        ids_shuffle = torch.argsort(noise, dim=2)  # ascend: small is keep, large is remove
-        ids_restore = torch.argsort(ids_shuffle, dim=2)
-
-        # keep the first subset
-        ids_keep = ids_shuffle[:, :, :len_keep]
-        x_masked = torch.gather(x, dim=2, index=ids_keep.unsqueeze(-1).repeat(1, 1, 1, d))
-
-        # generate the binary mask: 0 is keep, 1 is remove
-        mask = torch.ones([b, num_leads, n], device=x.device)
-        mask[:, :, :len_keep] = 0
-        # unshuffle to get the binary mask
-        mask = torch.gather(mask, dim=2, index=ids_restore)
-
-        return x_masked, mask, ids_restore
-
-    def forward_encoder(self, x, mask_ratio):
+    def forward_encoder(self, x,):
         """x: (batch_size, num_leads, seq_len)"""
         # embed patches
         x = self.to_patch_embedding(x)
@@ -566,11 +525,8 @@ class ST_MEM(nn.Module):
         x = x + self.encoder.pos_embedding[:, 1 : n + 1, :].unsqueeze(1)
 
         # masking: length -> length * mask_ratio
-        if mask_ratio > 0:
-            x, mask, ids_restore = self.random_masking(x, mask_ratio)
-        else:
-            mask = torch.zeros([b, self.num_leads, n], device=x.device)
-            ids_restore = torch.arange(n, device=x.device).unsqueeze(0).repeat(b, self.num_leads, 1)
+        mask = torch.zeros([b, self.num_leads, n], device=x.device)
+        ids_restore = torch.arange(n, device=x.device).unsqueeze(0).repeat(b, self.num_leads, 1)
 
         # apply lead indicating modules
         # 1) SEP embedding
@@ -626,34 +582,16 @@ class ST_MEM(nn.Module):
         x_latents = torch.stack(x_latents, dim=1)
         return x, x_latents
 
-    def forward_loss(self, series, pred, mask):
-        """series: (batch_size, num_leads, seq_len)
-        pred: (batch_size, num_leads, n, patch_size)
-        mask: (batch_size, num_leads, n), 0 is keep, 1 is remove,
-        """
-        target = self.patchify(series)
-        if self.norm_pix_loss:
-            mean = target.mean(dim=-1, keepdim=True)
-            var = target.var(dim=-1, keepdim=True)
-            target = (target - mean) / (var + 1.0e-6) ** 0.5
+    def get_encoder_embeddings(self, ecg_signal):
+        latent, _, ids_restore = self.forward_encoder(ecg_signal.to(self.to_decoder_embedding.weight.dtype))
+        _, x_latents = self.forward_decoder(latent, ids_restore)
+        out = x_latents.permute(0, 3, 1, 2)
+        out = out.mean(dim=2)
+        out = self.avgpool(out)
+        return out.transpose(1, 2)
 
-        loss = (pred - target) ** 2
-        loss = loss.mean(dim=-1)  # (batch_size, num_leads, n), mean loss per patch
-
-        loss = (loss * mask).sum() / mask.sum()  # mean loss on removed patches
-        return loss
-
-    def get_encoder_embeddings(self, series):
-        return self.encoder.forward_encoding(series)
-
-    def forward(self, signal, mask_ratio=0.75):
-        recon_loss = 0
-        pred = None
-        mask = None
-        latent, mask, ids_restore = self.forward_encoder(signal.to(self.to_decoder_embedding.weight.dtype), mask_ratio)
-        pred, x_latents = self.forward_decoder(latent, ids_restore)
-        recon_loss = self.forward_loss(signal, pred, mask)
-        return ST_MEMOutput(loss=recon_loss, out=x_latents,)
+    def forward(self, ):
+        raise NotImplementedError
 
     def __repr__(self):
         print_str = f"{self.__class__.__name__}(\n"
