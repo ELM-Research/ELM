@@ -3,6 +3,7 @@ import scipy.stats as stats
 from tqdm import tqdm
 import torch
 from collections import Counter
+import string
 
 from utils.gpu_manager import is_main, train_dev_break
 
@@ -18,26 +19,81 @@ def evaluate_strings(references, hypotheses):
     if not valid_pairs:
         return {
             "ACC": 0.0,
+            "F1": 0.0,
         }
     valid_refs, valid_hyps = zip(*valid_pairs)
     return {
         "ACC": calculate_acc(valid_refs, valid_hyps),
+        "F1": calculate_f1(valid_refs, valid_hyps),
     }
+def _normalize(text):
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = " ".join(text.split())
+    return text
+
+def _token_f1(ref, hyp):
+    ref_tokens = _normalize(ref).split()
+    hyp_tokens = _normalize(hyp).split()
+    if not ref_tokens and not hyp_tokens:
+        return 1.0
+    if not ref_tokens or not hyp_tokens:
+        return 0.0
+    common = Counter(ref_tokens) & Counter(hyp_tokens)
+    num_common = sum(common.values())
+    if num_common == 0:
+        return 0.0
+    precision = num_common / len(hyp_tokens)
+    recall = num_common / len(ref_tokens)
+    return 2 * precision * recall / (precision + recall)
+
+def calculate_f1(references, hypotheses):
+    return np.mean([_token_f1(ref, hyp) for ref, hyp in zip(references, hypotheses)])
 
 def compute_classification_metrics(references, hypotheses):
     valid_classes = set(references)
+
+    other_raw = [h for h in hypotheses if h not in valid_classes]
+    other_counts = dict(Counter(other_raw))
+
     hypotheses = [h if h in valid_classes else "Other" for h in hypotheses]
     has_other = "Other" not in valid_classes and any(h == "Other" for h in hypotheses)
+
     row_classes = sorted(valid_classes)
     col_classes = row_classes + (["Other"] if has_other else [])
     cm = Counter((r, h) for r, h in zip(references, hypotheses))
+
     per_class_acc = {}
     for c in row_classes:
         total = sum(1 for r in references if r == c)
-        correct = cm[(c, c)]
-        per_class_acc[c] = correct / total if total > 0 else 0.0
+        per_class_acc[c] = cm[(c, c)] / total if total > 0 else 0.0
+
     confusion_matrix = {c: {p: cm[(c, p)] for p in col_classes} for c in row_classes}
-    return per_class_acc, confusion_matrix
+    return per_class_acc, confusion_matrix, other_counts
+
+def save_other_outputs_histogram_png(other_counts, path, top_k=20):
+    if not other_counts:
+        return
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    items = Counter(other_counts).most_common(top_k)
+    labels, counts = zip(*items)
+    fig_h = max(3, 0.45 * len(labels) + 1.5)
+    fig, ax = plt.subplots(figsize=(10, fig_h))
+    y = np.arange(len(labels))
+    ax.barh(y, counts)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlabel("Count")
+    ax.set_title(f"Top {min(top_k, len(labels))} 'Other' Outputs")
+    for i, c in enumerate(counts):
+        ax.text(c, i, f" {c}", va="center", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved other-output histogram to {path}")
 
 def print_classification_metrics(per_class_acc, confusion_matrix):
     row_classes = list(confusion_matrix.keys())
@@ -140,6 +196,7 @@ def index_nested(encoder_tokenizer_out, batch):
 def evaluate(elm, dataloader, args):
     show_progress = is_main()
     elm.eval()
+    needs_signal_injection = args.elm in ("llava", "fuyu")
     progress = tqdm(
         dataloader,
         desc=f"LLM: {args.llm} ENCODER: {args.encoder}",
@@ -155,7 +212,7 @@ def evaluate(elm, dataloader, args):
             for b in range(B):
                 full_ids = batch["elm_input_ids"][b].tolist()
                 full_attn = batch["elm_attention_mask"][b].tolist()
-                if args.elm:
+                if needs_signal_injection:
                     signal_indices = batch["signal_id_indices"][b]
                     full_encoder_tokenizer_out = index_nested(batch["encoder_tokenizer_out"], b)
                 ranges = dataset.get_response_ranges(full_ids)
@@ -171,7 +228,7 @@ def evaluate(elm, dataloader, args):
                         "elm_input_ids": torch.tensor(sub_ids, dtype=torch.int64).unsqueeze(0),
                         "elm_attention_mask": torch.tensor(sub_attn, dtype=torch.float32).unsqueeze(0),
                     }
-                    if args.elm:
+                    if needs_signal_injection:
                         gen_batch["encoder_tokenizer_out"] = full_encoder_tokenizer_out
                         gen_batch["signal_id_indices"] = signal_indices
                     gen_batch = {k: batch_to_device(v, device) for k, v in gen_batch.items()}
@@ -185,14 +242,16 @@ def evaluate(elm, dataloader, args):
                     if gt and gen_txt:
                         all_refs.append(gt)
                         all_hyps.append(gen_txt)
-            if train_dev_break(getattr(args, "dev", False), batch, 0):
-                break
-            if batch_idx == 10:
-                break
+            # if train_dev_break(getattr(args, "dev", False), batch, 0):
+            #     break
+            # if batch_idx == 10:
+            #     break
+            # input()
     results = evaluate_strings(all_refs, all_hyps)
     print("\n=== N-Turn Evaluation (generated vs. gold response only) ===")
     print(f"Pairs: {len(all_refs)}")
     print(f"ACC: {results['ACC']:.4f}")
+    print(f"F1:  {results['F1']:.4f}")
     out = {
         "num_pairs": len(all_refs),
         "metrics": results,
@@ -200,8 +259,9 @@ def evaluate(elm, dataloader, args):
         "hypotheses": all_hyps,
     }
     if any(d.startswith("ecg-comp") for d in args.data):
-        per_class_acc, confusion_matrix = compute_classification_metrics(all_refs, all_hyps)
+        per_class_acc, confusion_matrix, other_counts = compute_classification_metrics(all_refs, all_hyps)
         print_classification_metrics(per_class_acc, confusion_matrix)
         results["per_class_acc"] = per_class_acc
         out["confusion_matrix"] = confusion_matrix
+        out["other_output_counts"] = other_counts
     return out
