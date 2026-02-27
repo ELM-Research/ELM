@@ -301,3 +301,12 @@ IMAGE_WORD_RE = re.compile(r"\b(image)\b", flags=re.IGNORECASE)
 def case_preserving_signal(m: re.Match) -> str:
     w = m.group(1)
     return "Signal" if w[0].isupper() else "signal"
+
+OPENTSLM_MODELS = {
+    "opentslm-llama-3.2-3b-ecg-sp": {
+        "base_llm": "meta-llama/Llama-3.2-3B",
+        "checkpoint_repo": "OpenTSLM/llama-3.2-3b-ecg-sp",
+        "checkpoint_file": "softprompt-llama_3_2_3b-ecg.pt",
+        "max_patches": 1024,
+    },
+}

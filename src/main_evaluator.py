@@ -9,19 +9,50 @@ from utils.gpu_manager import GPUSetup
 from utils.seed_manager import set_seed
 from dataloaders.build_dataloader import BuildDataLoader
 from elms.build_elm import BuildELM
-from runners.evaluator import evaluate, run_statistical_analysis, save_confusion_matrix_png, save_other_outputs_histogram_png
+from runners.evaluator import evaluate, evaluate_opentslm, run_statistical_analysis, save_confusion_matrix_png, save_other_outputs_histogram_png
 
 
-def main():
-    gc.collect()
-    torch.cuda.empty_cache()
-    mode = "eval"
-    args = get_args(mode)
-    args.mode = mode
-    # folds = ["1", "2", "3", "4", "5"]
-    # seeds = [1337, 1338, 1339, 1340, 1341]
-    folds = ["1"]
-    seeds = [1337, 1338]
+def _decode_batch(batch):
+    if "text" in batch:
+        out = []
+        for t in batch["text"]:
+            try:
+                out.append(json.loads(t))
+            except Exception:
+                out.append(t)
+        batch["text"] = out
+    return batch
+
+
+def _run_opentslm_eval(args, folds, seeds):
+    from datasets import load_dataset
+    from elms.opentslm_wrapper import build_opentslm
+
+    device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    model = build_opentslm(args, device)
+    data_name = "_".join(args.data)
+    results_file = f"./{args.opentslm_model}_{data_name}.json"
+    all_metrics = []
+
+    for fold in folds:
+        for seed in seeds:
+            print(f"Evaluating fold {fold} with seed {seed}")
+            args.fold = fold
+            args.seed = seed
+            set_seed(seed)
+            for dn in args.data:
+                dataset = load_dataset(f"willxxy/{dn}", split=f"fold{fold}_test").with_transform(_decode_batch)
+                out = evaluate_opentslm(model, dataset, args)
+                all_metrics.append(out)
+
+    statistical_results = run_statistical_analysis(all_metrics)
+    print(statistical_results)
+    with open(results_file, "w") as f:
+        json.dump(statistical_results, f, indent=2)
+    print(f"Saved evaluation results to {results_file}")
+
+
+def _run_elm_eval(args, folds, seeds):
     all_metrics = []
 
     if args.elm_ckpt:
@@ -62,6 +93,23 @@ def main():
     with open(results_file, "w") as f:
         json.dump(statistical_results, f, indent=2)
     print(f"Saved evaluation results to {results_file}")
+
+
+def main():
+    gc.collect()
+    torch.cuda.empty_cache()
+    mode = "eval"
+    args = get_args(mode)
+    args.mode = mode
+    # folds = ["1", "2", "3", "4", "5"]
+    # seeds = [1337, 1338, 1339, 1340, 1341]
+    folds = ["1"]
+    seeds = [1337, 1338]
+
+    if args.elm == "opentslm":
+        _run_opentslm_eval(args, folds, seeds)
+    else:
+        _run_elm_eval(args, folds, seeds)
 
 
 if __name__ == "__main__":

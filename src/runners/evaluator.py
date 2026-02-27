@@ -193,6 +193,36 @@ def run_statistical_analysis(all_seeds_results):
 def index_nested(encoder_tokenizer_out, batch):
     return {k: index_nested(v, batch) if isinstance(v, dict) else v[batch:batch+1] for k, v in encoder_tokenizer_out.items()}
 
+def evaluate_opentslm(model, dataset, args):
+    """Evaluate an OpenTSLMSP model on a raw HF dataset."""
+    from elms.opentslm_wrapper import build_prompt, extract_answer, extract_qa
+    from utils.dir_file_manager import DirFileManager
+
+    fm = DirFileManager()
+    all_refs, all_hyps = [], []
+    progress = tqdm(dataset, desc=f"OpenTSLM: {args.opentslm_model}", leave=False)
+    with torch.no_grad():
+        for data in progress:
+            ecg_signal = fm.open_npy(data["ecg_path"])["ecg"]
+            question, answer = extract_qa(data["text"])
+            prompt = build_prompt(ecg_signal, question, args.opentslm_path)
+            output = model.eval_prompt(prompt, max_new_tokens=args.max_new_tokens)
+            hyp = extract_answer(output)
+            all_refs.append(answer)
+            all_hyps.append(hyp)
+    results = evaluate_strings(all_refs, all_hyps)
+    print(f"\n=== OpenTSLM Evaluation ===")
+    print(f"Pairs: {len(all_refs)}")
+    print(f"ACC: {results['ACC']:.4f}")
+    print(f"F1:  {results['F1']:.4f}")
+    return {
+        "num_pairs": len(all_refs),
+        "metrics": results,
+        "references": all_refs,
+        "hypotheses": all_hyps,
+    }
+
+
 def evaluate(elm, dataloader, args):
     show_progress = is_main()
     elm.eval()

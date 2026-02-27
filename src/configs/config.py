@@ -52,6 +52,9 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--llm_input_len", type=int, default=2048, help="LLM Input Sequence Length")
         parser.add_argument("--min_ecg_tokens_len", type=int, default=512, help="Minimum ECG token length to consider")
         parser.add_argument("--norm_eps", type=float, default=1e-6, help="Please choose the normalization epsilon")
+        parser.add_argument("--max_new_tokens", type=int, default=256, help="Max new tokens for generation")
+        parser.add_argument("--opentslm_model", type=str, default=None, help="OpenTSLM model key (e.g. opentslm-llama-3.2-3b-ecg-sp)")
+        parser.add_argument("--opentslm_path", type=str, default=None, help="Path to OpenTSLM source directory")
     if mode == "train":
         parser.add_argument("--optimizer", type=str, default="adam", choices=["adam", "adamw", "muon"], help="Optimizer type")
         parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
