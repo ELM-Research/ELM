@@ -37,8 +37,9 @@ def main():
 
     try:
         if not args.dev:
+            data_name = "_".join(args.data)
             run_folder = setup_experiment_folders(
-                f"{RUNS_DIR}/pretrain/{args.llm}_{args.encoder}",
+                f"{RUNS_DIR}/{args.llm}_{args.encoder}/{data_name}",
                 args,
             )
         if is_main() and not args.dev:
@@ -73,6 +74,7 @@ def main():
             should_stop = broadcast_value(should_stop, src=0)
             if should_stop:
                 break
+
         if is_main() and not args.dev:
             with open(f"{run_folder}/DONE.txt", "w") as _:
                 pass
