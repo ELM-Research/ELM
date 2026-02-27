@@ -3,7 +3,7 @@ from configs.constants import Mode
 
 
 def get_args(mode: Mode) -> argparse.Namespace:
-    if mode not in {"train", "eval", "inference", "post_train"}:
+    if mode not in {"train", "eval", "inference", "post_train", "analyze"}:
         raise ValueError(f"invalid mode: {mode}")
 
     parser = argparse.ArgumentParser(description=None)
@@ -25,12 +25,13 @@ def get_args(mode: Mode) -> argparse.Namespace:
             required=True,
         )
         parser.add_argument("--scratch", action="store_true", default=False, help="Use randomly initialized LLM instead of pretrained weights")
-        parser.add_argument("--leads", type=int, nargs="+", default=None, help="leads to use")
+        parser.add_argument("--leads", type=int, nargs="+", default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], help="leads to use")
         parser.add_argument("--data_subset", type=float, default=None, help="Subset of data to use (between 0 and 1)")
         parser.add_argument("--encoder", type=str, default=None, help="Neural Network Encoder Model")
         parser.add_argument("--llm", type=str, default=None, help="Large Language Model")
         parser.add_argument("--elm", type=str, default=None, help="ECG Language Model")
         parser.add_argument("--peft", action="store_true", default=None, help="Use PEFT")
+        parser.add_argument("--save_step", action="store_true", default=None, help="Save step wise")
         parser.add_argument("--lora_rank", type=int, default=16, help="LoRA rank")
         parser.add_argument("--lora_alpha", type=int, default=32, help="LoRA alpha")
         parser.add_argument("--lora_dropout", type=float, default=0.05, help="LoRA dropout")
@@ -75,4 +76,6 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--grad_clip", type=float, default=0.0, help="Max gradient norm for clipping (0 to disable)")
         parser.add_argument("--scale_wd", type=str, default="none", choices=["none", "inv_sqrt", "inv_linear"])
 
+    if mode == "analyze":
+        parser.add_argument("--json_paths", type = str, nargs="+", default = None)
     return parser.parse_args()

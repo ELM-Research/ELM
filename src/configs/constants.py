@@ -3,7 +3,7 @@ import torch
 import re
 
 # Main arg MODE types
-Mode = Literal["train", "eval", "inference", "post_train"]
+Mode = Literal["train", "eval", "inference", "post_train", "analyze"]
 
 # Directories
 RUNS_DIR = "./src/runs"
