@@ -77,5 +77,6 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--scale_wd", type=str, default="none", choices=["none", "inv_sqrt", "inv_linear"])
 
     if mode == "analyze":
+        parser.add_argument("--json_dirs", type = str, nargs="+", default = None)
         parser.add_argument("--json_paths", type = str, nargs="+", default = None)
     return parser.parse_args()
