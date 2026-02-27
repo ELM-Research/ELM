@@ -79,4 +79,6 @@ def get_args(mode: Mode) -> argparse.Namespace:
     if mode == "analyze":
         parser.add_argument("--json_dirs", type = str, nargs="+", default = None)
         parser.add_argument("--json_paths", type = str, nargs="+", default = None)
+        parser.add_argument("--output_dir", type=str, default=".")
+        parser.add_argument("--ckpt_type", type = str, default = "best")
     return parser.parse_args()
