@@ -1,4 +1,5 @@
 import os
+import re
 
 import matplotlib
 matplotlib.use("Agg")
@@ -13,6 +14,7 @@ from utils.dir_file_manager import DirFileManager
 DIR_FILE_MANAGER = DirFileManager()
 PERTURB_ORDER = ["None", "noise", "only_text", "zeros"]
 PASTEL_COLORS = ["#A8D8EA", "#F5B7B1", "#ABEBC6", "#D7BDE2"]
+STEP_EPOCH_RE = re.compile(r"step_epoch_(\d+)_step_(\d+)")
 
 
 def extract_metrics(json_data):
@@ -90,7 +92,7 @@ def find_aligned_perturbations(all_metrics):
     return [p for p in PERTURB_ORDER if p in common]
 
 
-def plot_metric_comparison(all_metrics, model_names, perturbations, metric, dataset, save_path):
+def plot_perturb_comparison(all_metrics, model_names, perturbations, metric, dataset, save_path):
     n_models = len(model_names)
     n_perturbs = len(perturbations)
     x = np.arange(n_models)
@@ -125,7 +127,7 @@ def plot_metric_comparison(all_metrics, model_names, perturbations, metric, data
     print(f"Saved {metric} plot to {save_path}")
 
 
-def visualize_metric_comparison(json_dirs, output_dir, ckpt_type):
+def visualize_perturb_comparison(json_dirs, output_dir, ckpt_type):
     all_metrics = {}
     model_names = []
     datasets = set()
@@ -155,13 +157,83 @@ def visualize_metric_comparison(json_dirs, output_dir, ckpt_type):
     os.makedirs(output_dir, exist_ok=True)
     for metric in ["Accuracy", "F1"]:
         save_path = os.path.join(output_dir, f"{metric}_{dataset_label}_comparison.png")
-        plot_metric_comparison(all_metrics, model_names, perturbations, metric, dataset_label, save_path)
+        plot_perturb_comparison(all_metrics, model_names, perturbations, metric, dataset_label, save_path)
+
+
+def parse_step_epoch(filename):
+    m = STEP_EPOCH_RE.match(Path(filename).stem)
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def collect_stepwise_metrics(json_dir):
+    seen, entries = set(), []
+    for f in sorted(Path(json_dir).glob("step_epoch_*.json")):
+        key = parse_step_epoch(f.name)
+        if key is None or key in seen:
+            continue
+        data = DIR_FILE_MANAGER.open_json(f)
+        if "per_class_acc" not in data:
+            continue
+        seen.add(key)
+        entries.append({"epoch": key[0], "step": key[1], "per_class_acc": data["per_class_acc"]})
+    entries.sort(key=lambda e: (e["epoch"], e["step"]))
+    return entries
+
+
+def plot_stepwise_per_class_accuracy(entries, title, save_path):
+    classes = sorted(entries[0]["per_class_acc"].keys())
+    x = np.arange(len(entries))
+    x_labels = [f"{e['step']}" for e in entries]
+
+    fig, ax = plt.subplots(figsize=(max(10, len(entries) * 1.0), 7))
+    for i, cls in enumerate(classes):
+        means = np.array([e["per_class_acc"][cls]["mean"] for e in entries])
+        stds = np.array([e["per_class_acc"][cls]["std"] for e in entries])
+        color = plt.cm.tab10(i % 10)
+        ax.plot(x, means, marker="o", label=cls, color=color, linewidth=2.5, markersize=8)
+        ax.fill_between(x, means - stds, means + stds, alpha=0.5, color=color)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(x_labels, fontsize=14, rotation=45, ha="right")
+    ax.set_ylabel("Per-Class Accuracy (%)", fontsize=18)
+    ax.set_xlabel("Training Step", fontsize=18)
+    ax.set_title(title, fontsize=20, fontweight="bold")
+    ax.tick_params(axis="y", labelsize=16)
+    ax.legend(title="Class", fontsize=12, title_fontsize=13,
+              loc="upper left", bbox_to_anchor=(1.0, 1.0))
+    ax.set_ylim(bottom=0)
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved stepwise per-class accuracy plot to {save_path}")
+
+
+def visualize_stepwise(stepwise_dirs, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    for d in stepwise_dirs:
+        entries = collect_stepwise_metrics(d)
+        if not entries:
+            print(f"No stepwise JSONs with per_class_acc in {d}, skipping.")
+            continue
+        cfg = load_run_config(d)
+        label = f"ELM: {cfg['elm']} LLM: {cfg['llm']} Encoder: {cfg['encoder']}" if cfg else Path(d).resolve().name
+        dataset = derive_dataset_name(d)
+        # title = f"Per-Class Accuracy Over Training\n{label}\n{dataset}"
+        title = f"Per-Class Accuracy Over Training\n{dataset}"
+        safe = Path(d).resolve().name
+        if safe == "checkpoints":
+            safe = Path(d).resolve().parent.name
+        save_path = os.path.join(output_dir, f"stepwise_per_class_{safe}.png")
+        plot_stepwise_per_class_accuracy(entries, title, save_path)
 
 
 def main():
     args = get_args("analyze")
     if args.json_dirs:
-        visualize_metric_comparison(args.json_dirs, args.output_dir, args.ckpt_type)
+        visualize_perturb_comparison(args.json_dirs, args.output_dir, args.ckpt_type)
+    if args.stepwise_dirs:
+        visualize_stepwise(args.stepwise_dirs, args.output_dir)
 
 
 if __name__ == "__main__":
