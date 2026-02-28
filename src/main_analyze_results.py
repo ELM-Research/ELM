@@ -180,25 +180,13 @@ def collect_stepwise_metrics(json_dir):
     return entries
 
 def create_class_mapping(title):
-    split_title = title.split("-")
-    idx_title = split_title[2:]
-    class_map = {}
-    if "ecg" in idx_title:
-        class_map["A"] = "ecg"
+    labels = title.split("-")[2:]
+    if "ecg" in labels:
+        order = ["ecg", "noise", "flatline"]
     else:
-        class_map["A"] = "noise"
-        class_map["B"] = "flatline"
-        return class_map
-    if "noise" in idx_title and "flatline" in idx_title:
-        class_map["B"] = "noise"
-        class_map["C"] = "flatline"
-        return class_map
-    if "noise" in idx_title:
-        class_map["B"] = "noise"
-        return class_map
-    else:
-        class_map["B"] = "flatline"
-        return class_map
+        order = ["noise", "flatline"]
+    keys = "ABC"
+    return {keys[i]: l for i, l in enumerate(l for l in order if l in labels)}
 
 
 def plot_stepwise_per_class_accuracy(entries, title, save_path, dataset):
@@ -211,8 +199,8 @@ def plot_stepwise_per_class_accuracy(entries, title, save_path, dataset):
         means = np.array([e["per_class_acc"][cls]["mean"] for e in entries])
         stds = np.array([e["per_class_acc"][cls]["std"] for e in entries])
         color = plt.cm.tab10(i % 10)
-        ax.plot(x, means, marker="o", label=class_map[cls], color=color, linewidth=2.5, markersize=8)
-        ax.fill_between(x, means - stds, means + stds, alpha=0.5, color=color)
+        ax.plot(x, means, marker="o", label=class_map[cls], color=color, linewidth=3, markersize=8)
+        ax.fill_between(x, means - stds, means + stds, alpha=0.3, color=color)
 
     ax.set_xticks(x)
     ax.set_xticklabels(x_labels, fontsize=14, rotation=45, ha="right")
