@@ -107,7 +107,7 @@ def plot_perturb_comparison(all_metrics, model_names, perturbations, metric, dat
                label=perturb, capsize=4, color=PASTEL_COLORS[i % len(PASTEL_COLORS)],
                edgecolor=PASTEL_COLORS[i % len(PASTEL_COLORS)], linewidth=0.1)
 
-    ax.set_ylabel(metric, fontsize=17)
+    ax.set_ylabel(f"{metric} (%)", fontsize=17)
     ax.set_title(f"The Effect of Perturbations on {dataset}", fontsize=19)
     ax.set_xticks(x)
     ax.set_xticklabels(model_names, fontsize=14, ha="center")
@@ -179,23 +179,44 @@ def collect_stepwise_metrics(json_dir):
     entries.sort(key=lambda e: (e["epoch"], e["step"]))
     return entries
 
+def create_class_mapping(title):
+    split_title = title.split("-")
+    idx_title = split_title[2:]
+    class_map = {}
+    if "ecg" in idx_title:
+        class_map["A"] = "ecg"
+    else:
+        class_map["A"] = "noise"
+        class_map["B"] = "flatline"
+        return class_map
+    if "noise" in idx_title and "flatline" in idx_title:
+        class_map["B"] = "noise"
+        class_map["C"] = "flatline"
+        return class_map
+    if "noise" in idx_title:
+        class_map["B"] = "noise"
+        return class_map
+    else:
+        class_map["B"] = "flatline"
+        return class_map
 
-def plot_stepwise_per_class_accuracy(entries, title, save_path):
+
+def plot_stepwise_per_class_accuracy(entries, title, save_path, dataset):
+    class_map = create_class_mapping(dataset)
     classes = sorted(entries[0]["per_class_acc"].keys())
     x = np.arange(len(entries))
     x_labels = [f"{e['step']}" for e in entries]
-
     fig, ax = plt.subplots(figsize=(max(10, len(entries) * 1.0), 7))
     for i, cls in enumerate(classes):
         means = np.array([e["per_class_acc"][cls]["mean"] for e in entries])
         stds = np.array([e["per_class_acc"][cls]["std"] for e in entries])
         color = plt.cm.tab10(i % 10)
-        ax.plot(x, means, marker="o", label=cls, color=color, linewidth=2.5, markersize=8)
+        ax.plot(x, means, marker="o", label=class_map[cls], color=color, linewidth=2.5, markersize=8)
         ax.fill_between(x, means - stds, means + stds, alpha=0.5, color=color)
 
     ax.set_xticks(x)
     ax.set_xticklabels(x_labels, fontsize=14, rotation=45, ha="right")
-    ax.set_ylabel("Per-Class Accuracy (%)", fontsize=18)
+    ax.set_ylabel("Accuracy (%)", fontsize=18)
     ax.set_xlabel("Training Step", fontsize=18)
     ax.set_title(title, fontsize=20, fontweight="bold")
     ax.tick_params(axis="y", labelsize=16)
@@ -225,7 +246,7 @@ def visualize_stepwise(stepwise_dirs, output_dir):
         if safe == "checkpoints":
             safe = Path(d).resolve().parent.name
         save_path = os.path.join(output_dir, f"stepwise_per_class_{safe}.png")
-        plot_stepwise_per_class_accuracy(entries, title, save_path)
+        plot_stepwise_per_class_accuracy(entries, title, save_path, dataset)
 
 
 def main():
