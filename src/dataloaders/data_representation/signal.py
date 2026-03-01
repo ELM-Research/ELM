@@ -85,6 +85,4 @@ class Signal(Base):
             return prompt_tokens
 
     def transform_ecg_signal(self, ecg_signal):
-        if self.args.elm == "fuyu":
-            ecg_signal = ecg_signal.flatten()
         return ecg_signal
