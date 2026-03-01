@@ -133,7 +133,11 @@ class Base(Dataset):
 
     def create_attention_mask(self, truncated_padded_input: list[int]) -> list[int]:
         bos_token = next(iter(HF_LLMS[self.args.llm]["watch_tokens"]["bos_token"]))
-        start_idx = truncated_padded_input.index(bos_token)
+        try:
+            start_idx = truncated_padded_input.index(bos_token)
+        except ValueError:
+            # BOS token was truncated away — no left-padding exists, attend to all tokens
+            start_idx = 0
         attention_mask = [0] * len(truncated_padded_input)
         attention_mask[start_idx:] = [1] * (len(truncated_padded_input) - start_idx)
         return attention_mask
