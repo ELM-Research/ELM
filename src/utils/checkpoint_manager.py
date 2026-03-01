@@ -41,11 +41,33 @@ class CheckpointManager:
     def resume_checkpoint(self, path, model, optimizer):
         device = next(model.parameters()).device
         ckpt = torch.load(path, map_location=device, weights_only=False)
-        (model.module if self.args.distributed else model).load_state_dict(ckpt["model_state_dict"])
-        optimizer.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-        optimizer.n_current_steps = ckpt["n_current_steps"]
+
+        # Load model weights
+        raw_model = model.module if self.args.distributed else model
+        if "model_state_dict" in ckpt:
+            raw_model.load_state_dict(ckpt["model_state_dict"])
+        elif "state_dict" in ckpt:
+            raw_model.load_state_dict(ckpt["state_dict"])
+        else:
+            raw_model.load_state_dict(ckpt)
+            if is_main():
+                print("Checkpoint has no epoch info, resuming from epoch 0")
+            del ckpt
+            return 0
+
+        # Load optimizer state (skip if missing or incompatible)
+        if "optimizer_state_dict" in ckpt:
+            try:
+                optimizer.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+            except (ValueError, KeyError) as e:
+                if is_main():
+                    print(f"Warning: Could not load optimizer state ({e}), using fresh optimizer")
+        elif is_main():
+            print("Warning: No optimizer state in checkpoint, using fresh optimizer")
+
+        optimizer.n_current_steps = ckpt.get("n_current_steps", 0)
         self.best_loss = ckpt.get("best_loss", float("inf"))
-        start_epoch = ckpt["epoch"] + 1
+        start_epoch = ckpt.get("epoch", -1) + 1
         if is_main():
             print(f"Resumed from {path} | epoch {start_epoch} | step {optimizer.n_current_steps}")
         del ckpt
