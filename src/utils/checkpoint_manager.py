@@ -38,6 +38,19 @@ class CheckpointManager:
             best_path = os.path.join(self.checkpoint_dir, f"{prefix}best.pt")
             torch.save(checkpoint, best_path)
 
+    def resume_checkpoint(self, path, model, optimizer):
+        device = next(model.parameters()).device
+        ckpt = torch.load(path, map_location=device, weights_only=False)
+        (model.module if self.args.distributed else model).load_state_dict(ckpt["model_state_dict"])
+        optimizer.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        optimizer.n_current_steps = ckpt["n_current_steps"]
+        self.best_loss = ckpt.get("best_loss", float("inf"))
+        start_epoch = ckpt["epoch"] + 1
+        if is_main():
+            print(f"Resumed from {path} | epoch {start_epoch} | step {optimizer.n_current_steps}")
+        del ckpt
+        return start_epoch
+
     def save_epoch(self, loss):
         if loss < self.best_loss:
             self.best_loss = loss
