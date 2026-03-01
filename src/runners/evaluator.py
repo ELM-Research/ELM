@@ -196,7 +196,7 @@ def index_nested(encoder_tokenizer_out, batch):
 def evaluate(elm, dataloader, args):
     show_progress = is_main()
     elm.eval()
-    needs_signal_injection = args.elm in ("llava", "fuyu")
+    needs_signal_injection = args.elm in ("llava", "base_elf", "patch_elf")
     progress = tqdm(
         dataloader,
         desc=f"LLM: {args.llm} ENCODER: {args.encoder}",

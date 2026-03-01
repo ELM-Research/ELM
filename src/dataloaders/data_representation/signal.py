@@ -84,8 +84,13 @@ class Signal(Base):
         else:
             return prompt_tokens
 
-    def flatten_ecg_signal(self, ecg_signal):
+    def base_elf(self, ecg_signal):
         return ecg_signal.flatten()
 
-    def transform_ecg_signal(self, ecg_signal):
+    def patch_elf(self, ecg_signal):
         return ecg_signal
+
+    def transform_ecg_signal(self, ecg_signal):
+        if self.args.elm == "patch_elf":
+            return self.patch_elf(ecg_signal)
+        return self.base_elf(ecg_signal)
