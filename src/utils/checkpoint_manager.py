@@ -30,6 +30,8 @@ class CheckpointManager:
             "step": step,
             "model_state_dict": model_state_dict,
             "optimizer_state_dict": optimizer.optimizer.state_dict(),
+            "n_current_steps": optimizer.n_current_steps,
+            "best_loss": self.best_loss,
         }
         torch.save(checkpoint, filepath)
         if is_best:

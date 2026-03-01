@@ -29,6 +29,9 @@ def main():
     args.mode = mode
     args.task = "train"
 
+    if args.resume_ckpt and args.elm_ckpt:
+        raise ValueError("--resume_ckpt and --elm_ckpt are mutually exclusive")
+
     if args.distributed:
         init_dist()
 
@@ -62,7 +65,22 @@ def main():
             checkpoint_manager = None
         else:
             checkpoint_manager = CheckpointManager(run_folder, args)
-        for epoch in range(args.epochs):
+
+        start_epoch = 0
+        if args.resume_ckpt:
+            device = next(elm.parameters()).device
+            ckpt = torch.load(args.resume_ckpt, map_location=device, weights_only=False)
+            (elm.module if args.distributed else elm).load_state_dict(ckpt["model_state_dict"])
+            optimizer.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+            optimizer.n_current_steps = ckpt["n_current_steps"]
+            start_epoch = ckpt["epoch"] + 1
+            if checkpoint_manager:
+                checkpoint_manager.best_loss = ckpt.get("best_loss", float("inf"))
+            if is_main():
+                print(f"Resumed from {args.resume_ckpt} | epoch {start_epoch} | step {optimizer.n_current_steps}")
+            del ckpt
+
+        for epoch in range(start_epoch, args.epochs):
             train_result = run_train(elm, optimizer, dataloader, epoch, args, checkpoint_manager)
             should_stop = False
             if checkpoint_manager and is_main():
