@@ -84,5 +84,8 @@ class Signal(Base):
         else:
             return prompt_tokens
 
+    def flatten_ecg_signal(self, ecg_signal):
+        return ecg_signal.flatten()
+
     def transform_ecg_signal(self, ecg_signal):
         return ecg_signal
