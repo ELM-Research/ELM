@@ -62,7 +62,10 @@ def main():
             checkpoint_manager = None
         else:
             checkpoint_manager = CheckpointManager(run_folder, args)
-        for epoch in range(args.epochs):
+        start_epoch = 0
+        if args.resume_ckpt and checkpoint_manager:
+            start_epoch = checkpoint_manager.resume_checkpoint(args.resume_ckpt, elm, optimizer)
+        for epoch in range(start_epoch, args.epochs):
             train_result = run_train(elm, optimizer, dataloader, epoch, args, checkpoint_manager)
             should_stop = False
             if checkpoint_manager and is_main():

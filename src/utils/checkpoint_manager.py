@@ -30,6 +30,8 @@ class CheckpointManager:
             "step": step,
             "model_state_dict": model_state_dict,
             "optimizer_state_dict": optimizer.optimizer.state_dict(),
+            "n_current_steps": optimizer.n_current_steps,
+            "best_loss": self.best_loss,
         }
         torch.save(checkpoint, filepath)
         if is_best:
@@ -47,7 +49,7 @@ class CheckpointManager:
     def save_step(self, step, total_steps_per_epoch):
         if step == 0:
             return True
-        save_interval = max(1, total_steps_per_epoch // 5)
+        save_interval = max(1, total_steps_per_epoch // 10)
         return step % save_interval == 0
 
     def stop_early(self):
@@ -56,3 +58,16 @@ class CheckpointManager:
         best_loss = min(self.epoch_losses[: -self.args.patience])
         current_loss = min(self.epoch_losses[-self.args.patience :])
         return current_loss > best_loss - self.args.patience_delta
+
+    def resume_checkpoint(self, path, model, optimizer):
+        device = next(model.parameters()).device
+        ckpt = torch.load(path, map_location=device, weights_only=False)
+        (model.module if self.args.distributed else model).load_state_dict(ckpt["model_state_dict"])
+        optimizer.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        optimizer.n_current_steps = ckpt["n_current_steps"]
+        self.best_loss = ckpt.get("best_loss", float("inf"))
+        start_epoch = ckpt["epoch"] + 1
+        if is_main():
+            print(f"Resumed from {path} | epoch {start_epoch} | step {optimizer.n_current_steps}")
+        del ckpt
+        return start_epoch

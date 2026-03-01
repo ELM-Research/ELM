@@ -75,10 +75,12 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--grad_accum_steps", type=int, default=1)
         parser.add_argument("--grad_clip", type=float, default=0.0, help="Max gradient norm for clipping (0 to disable)")
         parser.add_argument("--scale_wd", type=str, default="none", choices=["none", "inv_sqrt", "inv_linear"])
+        parser.add_argument("--resume_ckpt", type=str, default=None, help="Full training resume: restores model, optimizer, and LR schedule state")
 
     if mode == "analyze":
         parser.add_argument("--json_dirs", type = str, nargs="+", default = None)
         parser.add_argument("--json_paths", type = str, nargs="+", default = None)
         parser.add_argument("--output_dir", type=str, default=".")
         parser.add_argument("--ckpt_type", type = str, default = "best")
+        parser.add_argument("--stepwise_dirs", type=str, nargs="+", default=None)
     return parser.parse_args()
