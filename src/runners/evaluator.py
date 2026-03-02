@@ -193,6 +193,32 @@ def run_statistical_analysis(all_seeds_results):
 def index_nested(encoder_tokenizer_out, batch):
     return {k: index_nested(v, batch) if isinstance(v, dict) else v[batch:batch+1] for k, v in encoder_tokenizer_out.items()}
 
+def save_incorrect_predictions_histogram_png(references, hypotheses, path, top_k=20):
+    incorrect = [h for r, h in zip(references, hypotheses) if r != h]
+    if not incorrect:
+        return
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    items = Counter(incorrect).most_common(top_k)
+    labels, counts = zip(*items)
+    labels = [l[:80] + "\u2026" if len(l) > 80 else l for l in labels]
+    fig_h = max(3, 0.45 * len(labels) + 1.5)
+    fig, ax = plt.subplots(figsize=(10, fig_h))
+    y = np.arange(len(labels))
+    ax.barh(y, counts)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlabel("Count")
+    ax.set_title(f"Top {min(top_k, len(labels))} Incorrect Predictions")
+    for i, c in enumerate(counts):
+        ax.text(c, i, f" {c}", va="center", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved incorrect-predictions histogram to {path}")
+
 def evaluate(elm, dataloader, args):
     show_progress = is_main()
     elm.eval()

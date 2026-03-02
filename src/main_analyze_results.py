@@ -14,7 +14,27 @@ from utils.dir_file_manager import DirFileManager
 DIR_FILE_MANAGER = DirFileManager()
 PERTURB_ORDER = ["None", "noise", "only_text", "zeros"]
 PASTEL_COLORS = ["#A8D8EA", "#F5B7B1", "#ABEBC6", "#D7BDE2"]
+CKPT_COMPARE = {"epoch_epoch_0_step_-1": "Epoch 1", "epoch_best": "Epoch 10", }
+CKPT_COLORS = ["#C07732", "#D1B204"]
 STEP_EPOCH_RE = re.compile(r"step_epoch_(\d+)_step_(\d+)")
+
+
+# ── Shared utilities ─────────────────────────────────────────────────────────
+
+
+def apply_clean_style(ax, grid_axis="y"):
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(axis=grid_axis, alpha=0.3, linestyle="--", color="#cccccc")
+    ax.set_axisbelow(True)
+
+
+def get_ylim_top(metric, dataset):
+    if metric == "F1" or "ecg-qa" in dataset:
+        return 100
+    if "ecg-instruct-45k" in dataset:
+        return 30
+    return None
 
 
 def extract_metrics(json_data):
@@ -24,20 +44,7 @@ def extract_metrics(json_data):
     }
 
 
-def parse_perturbation(filename):
-    stem = Path(filename).stem
-    for p in ["only_text", "noise", "zeros", "None"]:
-        if stem.endswith(f"_{p}"):
-            return p
-    return None
-
-
 def load_run_config(json_dir):
-    """Load config.yaml from the run directory.
-    Expected layout: runs/{llm}_{encoder}/{data}/{run_id}/checkpoints/
-    config.yaml lives in {run_id}/ (parent of checkpoints/).
-    Returns the config dict or None if not found.
-    """
     p = Path(json_dir).resolve()
     run_dir = p.parent if p.name == "checkpoints" else p
     config_path = run_dir / "config.yaml"
@@ -48,21 +55,15 @@ def load_run_config(json_dir):
 
 
 def derive_model_name(json_dir):
-    """Derive model label from config.yaml, falling back to directory name."""
     cfg = load_run_config(json_dir)
     if cfg:
-        elm = cfg.get("elm", "?")
-        llm = cfg.get("llm", "?")
-        encoder = cfg.get("encoder", "?")
-        return f"ELM: {elm}\nLLM: {llm}\nEncoder: {encoder}"
+        elm_name = "elf" if cfg.get('elm', '?') == "fuyu" else cfg.get('elm', '?')
+        return f"ELM: {elm_name}\nLLM: {cfg.get('llm', '?')}\nEncoder: {cfg.get('encoder', '?')}"
     p = Path(json_dir).resolve()
-    if p.name == "checkpoints":
-        return p.parent.parent.parent.name
-    return p.name
+    return p.parent.parent.parent.name if p.name == "checkpoints" else p.name
 
 
 def derive_dataset_name(json_dir):
-    """Derive dataset name from config.yaml, falling back to directory name."""
     cfg = load_run_config(json_dir)
     if cfg:
         data = cfg.get("data", [])
@@ -70,9 +71,51 @@ def derive_dataset_name(json_dir):
             return "_".join(data) if data else "unknown"
         return str(data)
     p = Path(json_dir).resolve()
-    if p.name == "checkpoints":
-        return p.parent.parent.name
-    return "unknown"
+    return p.parent.parent.name if p.name == "checkpoints" else "unknown"
+
+
+# ── Grouped bar chart (shared by perturb & checkpoint) ────────────────────────
+
+
+def plot_grouped_bar(all_metrics, model_names, groups, metric, title,
+                     legend_title, colors, save_path, ylim_top=None):
+    n_models, n_groups = len(model_names), len(groups)
+    x = np.arange(n_models)
+    width = 0.8 / n_groups
+
+    fig, ax = plt.subplots(figsize=(max(n_models * 5, 8), 6))
+    for i, group in enumerate(groups):
+        means = [all_metrics[name][group][metric]["mean"] for name in model_names]
+        stds = [all_metrics[name][group][metric]["std"] for name in model_names]
+        offset = (i - (n_groups - 1) / 2) * width
+        ax.bar(x + offset, means, width, yerr=stds, label=group, capsize=4,
+               color=colors[i % len(colors)], edgecolor="white", linewidth=0.8)
+
+    apply_clean_style(ax)
+    ax.set_ylabel(f"{metric} (%)", fontsize=17)
+    ax.set_title(title, fontsize=19, fontweight="bold", pad=15)
+    ax.set_xticks(x)
+    ax.set_xticklabels(model_names, fontsize=14, ha="center")
+    ax.tick_params(axis="y", labelsize=15)
+    ax.legend(title=legend_title, fontsize=12, title_fontsize=13,
+              loc="upper left", bbox_to_anchor=(1.0, 1.0),
+              framealpha=0.9, edgecolor="none")
+    ax.set_ylim(bottom=0, top=ylim_top)
+    fig.tight_layout()
+    fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print(f"Saved {metric} plot to {save_path}")
+
+
+# ── Perturbation comparison ──────────────────────────────────────────────────
+
+
+def parse_perturbation(filename):
+    stem = Path(filename).stem
+    for p in ["only_text", "noise", "zeros", "None"]:
+        if stem.endswith(f"_{p}"):
+            return p
+    return None
 
 
 def collect_dir_metrics(json_dir, ckpt_type):
@@ -92,45 +135,8 @@ def find_aligned_perturbations(all_metrics):
     return [p for p in PERTURB_ORDER if p in common]
 
 
-def plot_perturb_comparison(all_metrics, model_names, perturbations, metric, dataset, save_path):
-    n_models = len(model_names)
-    n_perturbs = len(perturbations)
-    x = np.arange(n_models)
-    width = 0.8 / n_perturbs
-
-    fig, ax = plt.subplots(figsize=(n_models * 5, 6))
-    for i, perturb in enumerate(perturbations):
-        means = [all_metrics[name][perturb][metric]["mean"] for name in model_names]
-        stds = [all_metrics[name][perturb][metric]["std"] for name in model_names]
-        offset = (i - (n_perturbs - 1) / 2) * width
-        ax.bar(x + offset, means, width, yerr=stds,
-               label=perturb, capsize=4, color=PASTEL_COLORS[i % len(PASTEL_COLORS)],
-               edgecolor=PASTEL_COLORS[i % len(PASTEL_COLORS)], linewidth=0.1)
-
-    ax.set_ylabel(f"{metric} (%)", fontsize=17)
-    ax.set_title(f"The Effect of Perturbations on {dataset}", fontsize=19)
-    ax.set_xticks(x)
-    ax.set_xticklabels(model_names, fontsize=14, ha="center")
-    ax.tick_params(axis="y", labelsize=15)
-    ax.legend(title="Perturbation", fontsize=12, title_fontsize=13,
-              loc="upper left", bbox_to_anchor=(1.0, 1.0))
-    if metric == "F1":
-        top = 100
-    elif "ecg-qa" in dataset:
-        top = 100
-    elif "ecg-instruct-45k" in dataset:
-        top = 30
-    ax.set_ylim(bottom=0, top = top)
-    fig.tight_layout()
-    fig.savefig(save_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Saved {metric} plot to {save_path}")
-
-
 def visualize_perturb_comparison(json_dirs, output_dir, ckpt_type):
-    all_metrics = {}
-    model_names = []
-    datasets = set()
+    all_metrics, model_names, datasets = {}, [], set()
     for d in json_dirs:
         name = derive_model_name(d)
         metrics = collect_dir_metrics(d, ckpt_type)
@@ -151,13 +157,61 @@ def visualize_perturb_comparison(json_dirs, output_dir, ckpt_type):
         return
 
     dataset_label = "_".join(sorted(datasets))
-    print(f"Models: {model_names}")
-    print(f"Dataset: {dataset_label}")
-    print(f"Aligned perturbations: {perturbations}")
+    print(f"Models: {model_names}\nDataset: {dataset_label}\nAligned perturbations: {perturbations}")
     os.makedirs(output_dir, exist_ok=True)
     for metric in ["Accuracy", "F1"]:
         save_path = os.path.join(output_dir, f"{metric}_{dataset_label}_{ckpt_type}_comparison.png")
-        plot_perturb_comparison(all_metrics, model_names, perturbations, metric, dataset_label, save_path)
+        plot_grouped_bar(all_metrics, model_names, perturbations, metric,
+                         f"The Effect of Perturbations on {dataset_label}", "Perturbation",
+                         PASTEL_COLORS, save_path, get_ylim_top(metric, dataset_label))
+
+
+# ── Checkpoint comparison ────────────────────────────────────────────────────
+
+
+def collect_checkpoint_metrics(json_dir):
+    metrics = {}
+    data = json_dir.split("/")[3]
+    for ckpt_key, ckpt_label in CKPT_COMPARE.items():
+        target = Path(json_dir) / f"{ckpt_key}_{data}_system_prompt_None.json"
+        if target.exists():
+            metrics[ckpt_label] = extract_metrics(DIR_FILE_MANAGER.open_json(target))
+    return metrics
+
+
+def visualize_checkpoint_comparison(checkpoint_dirs, output_dir):
+    all_metrics, model_names, datasets = {}, [], set()
+    for d in checkpoint_dirs:
+        name = derive_model_name(d)
+        metrics = collect_checkpoint_metrics(d)
+        if not metrics:
+            print(f"Warning: no checkpoint JSONs in {d}, skipping.")
+            continue
+        all_metrics[name] = metrics
+        model_names.append(name)
+        datasets.add(derive_dataset_name(d))
+
+    if not all_metrics:
+        print("No checkpoint metrics found in any directory.")
+        return
+
+    checkpoints = [label for label in CKPT_COMPARE.values()
+                   if all(label in all_metrics[n] for n in model_names)]
+    if not checkpoints:
+        print("No aligned checkpoint types found across all directories.")
+        return
+
+    dataset_label = "_".join(sorted(datasets))
+    print(f"Models: {model_names}\nDataset: {dataset_label}\nCheckpoints: {checkpoints}")
+    os.makedirs(output_dir, exist_ok=True)
+    for metric in ["Accuracy", "F1"]:
+        save_path = os.path.join(output_dir, f"{metric}_{dataset_label}_checkpoint_comparison.png")
+        plot_grouped_bar(all_metrics, model_names, checkpoints, metric,
+                         f"Checkpoint Comparison on {dataset_label}", "Checkpoint",
+                         CKPT_COLORS, save_path, get_ylim_top(metric, dataset_label))
+
+
+# ── Stepwise ─────────────────────────────────────────────────────────────────
 
 
 def parse_step_epoch(filename):
@@ -179,6 +233,7 @@ def collect_stepwise_metrics(json_dir):
     entries.sort(key=lambda e: (e["epoch"], e["step"]))
     return entries
 
+
 def create_class_mapping(title):
     labels = title.split("-")[2:]
     if "ecg" in labels:
@@ -194,31 +249,33 @@ def plot_stepwise_per_class_accuracy(entries, title, save_path, dataset):
     classes = sorted(entries[0]["per_class_acc"].keys())
     x = np.arange(len(entries))
     x_labels = [f"{e['step']}" for e in entries]
+
     fig, ax = plt.subplots(figsize=(max(10, len(entries) * 1.0), 7))
     for i, cls in enumerate(classes):
         means = np.array([e["per_class_acc"][cls]["mean"] for e in entries])
         stds = np.array([e["per_class_acc"][cls]["std"] for e in entries])
         color = plt.cm.tab10(i % 10)
         ax.plot(x, means, marker="o", label=class_map[cls], color=color, linewidth=3, markersize=8)
-        ax.fill_between(x, means - stds, means + stds, alpha=0.3, color=color)
+        ax.fill_between(x, means - stds, means + stds, alpha=0.15, color=color)
 
+    apply_clean_style(ax, grid_axis="both")
     ax.set_xticks(x)
     ax.set_xticklabels(x_labels, fontsize=14, rotation=45, ha="right")
     ax.set_ylabel("Accuracy (%)", fontsize=18)
     ax.set_xlabel("Training Step", fontsize=18)
-    ax.set_title(title, fontsize=20, fontweight="bold")
-    ax.tick_params(axis="y", labelsize=16)
+    ax.set_title(title, fontsize=20, fontweight="bold", pad=15)
+    ax.tick_params(axis="both", labelsize=16)
     ax.legend(title="Class", fontsize=12, title_fontsize=13,
-              loc="upper left", bbox_to_anchor=(1.0, 1.0))
+              loc="upper left", bbox_to_anchor=(1.0, 1.0),
+              framealpha=0.9, edgecolor="none")
     ax.set_ylim(bottom=0)
-    ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
-    fig.savefig(save_path, dpi=150, bbox_inches="tight")
+    fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"Saved stepwise per-class accuracy plot to {save_path}")
 
+
 def visualize_stepwise_combined(stepwise_dirs, output_dir):
-    """Plot per-class accuracy from multiple runs on a single figure."""
     os.makedirs(output_dir, exist_ok=True)
 
     all_runs = []
@@ -236,7 +293,6 @@ def visualize_stepwise_combined(stepwise_dirs, output_dir):
         print("No valid stepwise data found.")
         return
 
-    # use class mapping from the first run
     class_map = create_class_mapping(all_runs[0]["dataset"])
     classes = sorted(all_runs[0]["entries"][0]["per_class_acc"].keys())
 
@@ -258,26 +314,27 @@ def visualize_stepwise_combined(stepwise_dirs, output_dir):
             ls = linestyles[run_idx % len(linestyles)]
             ax.plot(steps, means, marker="o", label=run["label"], color=color,
                     linestyle=ls, linewidth=2.5, markersize=6)
-            ax.fill_between(steps, means - stds, means + stds, alpha=0.15, color=color)
+            ax.fill_between(steps, means - stds, means + stds, alpha=0.1, color=color)
 
-        ax.set_title(f"Class: {class_map.get(cls, cls)}", fontsize=16)
+        apply_clean_style(ax, grid_axis="both")
+        ax.set_title(f"Class: {class_map.get(cls, cls)}", fontsize=16, fontweight="bold")
         ax.set_xlabel("Training Step", fontsize=14)
         if cls_idx == 0:
             ax.set_ylabel("Accuracy (%)", fontsize=14)
         ax.set_ylim(bottom=0)
-        ax.grid(axis="y", alpha=0.3)
         ax.tick_params(labelsize=12)
 
-    # single shared legend
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.02),
-               ncol=min(len(all_runs), 3), fontsize=11)
+               ncol=min(len(all_runs), 3), fontsize=11,
+               framealpha=0.9, edgecolor="none")
     fig.suptitle("Per-Class Accuracy Over Training", fontsize=18, fontweight="bold", y=1.06)
     fig.tight_layout()
     save_path = os.path.join(output_dir, "stepwise_per_class_combined.png")
-    fig.savefig(save_path, dpi=150, bbox_inches="tight")
+    fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"Saved combined stepwise plot to {save_path}")
+
 
 def visualize_stepwise(stepwise_dirs, output_dir):
     os.makedirs(output_dir, exist_ok=True)
@@ -286,10 +343,7 @@ def visualize_stepwise(stepwise_dirs, output_dir):
         if not entries:
             print(f"No stepwise JSONs with per_class_acc in {d}, skipping.")
             continue
-        cfg = load_run_config(d)
-        label = f"ELM: {cfg['elm']} LLM: {cfg['llm']} Encoder: {cfg['encoder']}" if cfg else Path(d).resolve().name
         dataset = derive_dataset_name(d)
-        # title = f"Per-Class Accuracy Over Training\n{label}\n{dataset}"
         title = "Per-Class Accuracy Evaluated\non Test Set Over Training Steps"
         safe = Path(d).resolve().name
         if safe == "checkpoints":
@@ -298,10 +352,15 @@ def visualize_stepwise(stepwise_dirs, output_dir):
         plot_stepwise_per_class_accuracy(entries, title, save_path, dataset)
 
 
+# ── Entry point ──────────────────────────────────────────────────────────────
+
+
 def main():
     args = get_args("analyze")
     if args.json_dirs:
         visualize_perturb_comparison(args.json_dirs, args.output_dir, args.ckpt_type)
+    if args.checkpoint_dirs:
+        visualize_checkpoint_comparison(args.checkpoint_dirs, args.output_dir)
     if args.stepwise_dirs:
         if len(args.stepwise_dirs) > 1:
             visualize_stepwise_combined(args.stepwise_dirs, args.output_dir)

@@ -9,8 +9,8 @@ from utils.gpu_manager import GPUSetup
 from utils.seed_manager import set_seed
 from dataloaders.build_dataloader import BuildDataLoader
 from elms.build_elm import BuildELM
-from runners.evaluator import evaluate, run_statistical_analysis, save_confusion_matrix_png, save_other_outputs_histogram_png
-
+from runners.evaluator import evaluate, run_statistical_analysis, save_confusion_matrix_png, \
+                                save_other_outputs_histogram_png, save_incorrect_predictions_histogram_png
 
 def main():
     gc.collect()
@@ -33,7 +33,6 @@ def main():
     sys_prompt_name = Path(args.system_prompt).stem
     data_name = "_".join(args.data)
     results_file = os.path.join(checkpoint_dir, f"{ckpt_file_name}_{data_name}_{sys_prompt_name}_{args.perturb}.json")
-
     for fold in folds:
         for seed in seeds:
             print(f"Evaluating fold {fold} with seed {seed}")
@@ -55,10 +54,9 @@ def main():
             save_confusion_matrix_png(out["confusion_matrix"], cm_path)
             other_path = results_file.replace(".json", f"{fold}_{seed}_other.png")
             save_other_outputs_histogram_png(out["other_output_counts"], other_path, top_k = 20)
-
+        incorrect_path = results_file.replace(".json", f"{fold}_{seed}_incorrect.png")
+        save_incorrect_predictions_histogram_png(out["references"], out["hypotheses"], incorrect_path)
     statistical_results = run_statistical_analysis(all_metrics)
-    print(statistical_results)
-
     with open(results_file, "w") as f:
         json.dump(statistical_results, f, indent=2)
     print(f"Saved evaluation results to {results_file}")
