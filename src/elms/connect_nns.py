@@ -2,6 +2,7 @@ import argparse
 from typing import Any, Dict, Iterable, Mapping
 
 from elms.connectors.linear_proj import LinearProjection
+from elms.connectors.patch_proj import PatchProjection
 
 from configs.constants import ECG_ENCODERS, VISION_ENCODERS
 
@@ -31,8 +32,10 @@ class ConnectNN:
     ):
         if self.args.elm == "llava":
             encoder_llm_components = self.build_llava()
-        elif self.args.elm == "fuyu":
-            encoder_llm_components = self.build_fuyu()
+        elif self.args.elm == "base_elf":
+            encoder_llm_components = self.build_base_elf()
+        elif self.args.elm == "patch_elf":
+            encoder_llm_components = self.build_patch_elf()
         elif self.args.elm == "ecg_byte":
             encoder_llm_components = {"elm": self.llm_components["llm"]}
         return merge_dicts(
@@ -57,12 +60,24 @@ class ConnectNN:
             True if self.args.perturb == "only_text" else False)
         return {"elm": encoder_llm}
 
-    def build_fuyu(
+    def build_base_elf(
         self,
     ):
-        from elms.llm_encoders.fuyu import Fuyu
-        projection_dim = 12 * self.args.segment_len
+        from elms.llm_encoders.base_elf import BaseElf
+        projection_dim = len(self.args.leads) * self.args.segment_len
         projection_layer = LinearProjection(projection_dim, self.args.llm)
-        encoder_llm = Fuyu(self.llm_components["llm"], projection_layer,
+        encoder_llm = BaseElf(self.llm_components["llm"], projection_layer,
+                           True if self.args.perturb == "only_text" else False)
+        return {"elm": encoder_llm}
+
+    def build_patch_elf(self):
+        from elms.llm_encoders.base_elf import BaseElf
+        num_leads = len(self.args.leads)
+        num_patches = self.args.num_encoder_tokens
+        assert self.args.segment_len % num_patches == 0, \
+            f"segment_len ({self.args.segment_len}) must be divisible by num_encoder_tokens ({num_patches})"
+        patch_dim = num_leads * (self.args.segment_len // num_patches)
+        projection_layer = PatchProjection(num_patches, patch_dim, self.args.llm)
+        encoder_llm = BaseElf(self.llm_components["llm"], projection_layer,
                            True if self.args.perturb == "only_text" else False)
         return {"elm": encoder_llm}
