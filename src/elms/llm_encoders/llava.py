@@ -61,7 +61,7 @@ class LLaVA(nn.Module):
             assert projected_embeds.shape[:2] == signal_id_indices.shape
             assert projected_embeds.shape[0] == B and projected_embeds.shape[2] == H
             embedding_mask = (projected_embeds != 0).any(dim=-1)
-            indices_mask = signal_id_indices != -2
+            indices_mask = signal_id_indices >= 0
             valid_mask = embedding_mask & indices_mask
 
             if valid_mask.any():
