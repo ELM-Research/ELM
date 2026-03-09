@@ -193,7 +193,7 @@ def run_statistical_analysis(all_seeds_results):
 def index_nested(encoder_tokenizer_out, batch):
     return {k: index_nested(v, batch) if isinstance(v, dict) else v[batch:batch+1] for k, v in encoder_tokenizer_out.items()}
 
-def save_incorrect_predictions_histogram_png(references, hypotheses, path, top_k=20):
+def save_incorrect_predictions_histogram_png(references, hypotheses, path, top_k=10):
     incorrect = [h for r, h in zip(references, hypotheses) if r != h]
     if not incorrect:
         return
@@ -222,7 +222,7 @@ def save_incorrect_predictions_histogram_png(references, hypotheses, path, top_k
 def evaluate(elm, dataloader, args):
     show_progress = is_main()
     elm.eval()
-    needs_signal_injection = args.elm in ("llava", "fuyu")
+    needs_signal_injection = args.elm in ("llava", "base_elm", "patch_elm")
     progress = tqdm(
         dataloader,
         desc=f"LLM: {args.llm} ENCODER: {args.encoder}",
@@ -231,7 +231,7 @@ def evaluate(elm, dataloader, args):
     )
     dataset = dataloader.dataset
     device = next(elm.parameters()).device
-    all_refs, all_hyps = [], []
+    all_refs, all_hyps, all_prompts = [], [], []
     with torch.no_grad():
         for batch_idx, batch in enumerate(progress):
             B = batch["elm_input_ids"].shape[0]
@@ -266,6 +266,7 @@ def evaluate(elm, dataloader, args):
                         print(f"\nGenerated:\n{gen_txt}")
                         print("-" * 100)
                     if gt and gen_txt:
+                        all_prompts.append(dataset.llm_tokenizer.decode(sub_ids, skip_special_tokens=True).strip())
                         all_refs.append(gt)
                         all_hyps.append(gen_txt)
             # if train_dev_break(getattr(args, "dev", False), batch, 0):
@@ -281,6 +282,7 @@ def evaluate(elm, dataloader, args):
     out = {
         "num_pairs": len(all_refs),
         "metrics": results,
+        "prompts": all_prompts,
         "references": all_refs,
         "hypotheses": all_hyps,
     }
