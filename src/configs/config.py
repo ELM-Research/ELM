@@ -22,7 +22,6 @@ def get_args(mode: Mode) -> argparse.Namespace:
             "--data",
             type=str,
             nargs="+",
-            required=True,
         )
         parser.add_argument("--scratch", action="store_true", default=False, help="Use randomly initialized LLM instead of pretrained weights")
         parser.add_argument("--leads", type=int, nargs="+", default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], help="leads to use")
@@ -83,4 +82,5 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--output_dir", type=str, default=".")
         parser.add_argument("--ckpt_type", type = str, default = "best")
         parser.add_argument("--stepwise_dirs", type=str, nargs="+", default=None)
+        parser.add_argument("--checkpoint_dirs", type=str, nargs="+", default=None)
     return parser.parse_args()
