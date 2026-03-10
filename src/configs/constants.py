@@ -63,6 +63,26 @@ HF_DATASETS = [
     "ecg-comp-noise-flatline-30000-250-2500",
     "ecg-comp-noise-flatline-60000-250-2500",
     "ecg-comp-noise-flatline-90000-250-2500",
+    #
+    "ecg-comprehension-r-peak-count-100000-250-2500",
+    "ecg-comprehension-r-peak-count-200000-250-2500",
+    "ecg-comprehension-r-peak-count-300000-250-2500",
+    #
+    "ecg-comprehension-bpm-int-100000-250-2500",
+    "ecg-comprehension-bpm-int-200000-250-2500",
+    "ecg-comprehension-bpm-int-300000-250-2500",
+    #
+    "ecg-comprehension-bpm-float-100000-250-2500",
+    "ecg-comprehension-bpm-float-200000-250-2500",
+    "ecg-comprehension-bpm-float-300000-250-2500",
+    #
+    "ecg-comprehension-r-peak-count-789480-5000-250-2500",
+    "ecg-comprehension-r-peak-count-789480-10000-250-2500",
+    "ecg-comprehension-r-peak-count-789480-20000-250-2500",
+    #
+    "ecg-qa-cot-not-cot",
+    #
+    "ecg-r1-no-rl",
 ]
 
 HF_LLMS = {
@@ -141,9 +161,59 @@ HF_LLMS = {
             },
         },
     },
+    "qwen2.5-3b-instruct": {
+        "model": "Qwen/Qwen2.5-3B-Instruct",
+        "tokenizer": "Qwen/Qwen2.5-3B-Instruct",
+        "chat_template": "qwen-7b-chat",
+        "native_dtype": torch.bfloat16,
+        "tokens_to_add": {
+            "additional_special_tokens": [],
+        },
+        "find_unused_parameters": False,
+        "model_hidden_size": None,
+        "output_hidden_states": False,
+        "system_prompt": True,
+        "role": "assistant",
+        "watch_tokens": {
+            "bos_token": {151644: "<|im_start|>"},
+            "eos_token": {151645: "<|im_end|>"},
+            "response_start": {
+                "order": [151645, 198, 151644, 77091, 198],
+                151645: "<|im_end|>",
+                198: "Ċ",
+                151644: "<|im_start|>",
+                77091: "assistant",
+            },
+        },
+    },
     "qwen2.5-1.5b-instruct": {
         "model": "Qwen/Qwen2.5-1.5B-Instruct",
         "tokenizer": "Qwen/Qwen2.5-1.5B-Instruct",
+        "chat_template": "qwen-7b-chat",
+        "native_dtype": torch.bfloat16,
+        "tokens_to_add": {
+            "additional_special_tokens": [],
+        },
+        "find_unused_parameters": False,
+        "model_hidden_size": None,
+        "output_hidden_states": False,
+        "system_prompt": True,
+        "role": "assistant",
+        "watch_tokens": {
+            "bos_token": {151644: "<|im_start|>"},
+            "eos_token": {151645: "<|im_end|>"},
+            "response_start": {
+                "order": [151645, 198, 151644, 77091, 198],
+                151645: "<|im_end|>",
+                198: "Ċ",
+                151644: "<|im_start|>",
+                77091: "assistant",
+            },
+        },
+    },
+    "qwen2.5-0.5b-instruct": {
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "tokenizer": "Qwen/Qwen2.5-0.5B-Instruct",
         "chat_template": "qwen-7b-chat",
         "native_dtype": torch.bfloat16,
         "tokens_to_add": {
@@ -269,7 +339,7 @@ ECG_ENCODERS = {
         "find_unused_parameters": False,
         "strict": False,
         "model_hidden_size": 768,
-        "projection_dim": 256,
+        "projection_dim": 768,
         "encoder_input_len": None,
     },
     "mtae": {
