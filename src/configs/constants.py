@@ -269,7 +269,7 @@ ECG_ENCODERS = {
         "find_unused_parameters": False,
         "strict": False,
         "model_hidden_size": 768,
-        "projection_dim": 256,
+        "projection_dim": 768,
         "encoder_input_len": None,
     },
     "mtae": {
