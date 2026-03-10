@@ -1,4 +1,5 @@
 import argparse
+from collections.abc import Mapping, Sequence
 
 import torch
 from torch.utils.data.distributed import DistributedSampler
@@ -63,4 +64,16 @@ class BuildDataLoader:
         batch = [item for item in batch if item is not None]
         if len(batch) == 0:
             return None
+        batch = [self._clone_tensors(item) for item in batch]
         return torch.utils.data.dataloader.default_collate(batch)
+
+    def _clone_tensors(self, item):
+        if torch.is_tensor(item):
+            return item.clone()
+        if isinstance(item, Mapping):
+            return {key: self._clone_tensors(value) for key, value in item.items()}
+        if isinstance(item, tuple):
+            return tuple(self._clone_tensors(value) for value in item)
+        if isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
+            return [self._clone_tensors(value) for value in item]
+        return item
