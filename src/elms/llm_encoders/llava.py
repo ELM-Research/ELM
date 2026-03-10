@@ -88,7 +88,7 @@ class LLaVA(nn.Module):
             return out
 
     def generate(self, elm_input_ids, encoder_tokenizer_out, elm_attention_mask, signal_id_indices):
-        projected_embeds = self.get_projections(**encoder_tokenizer_out)
+        projected_embeds = self.get_projections(encoder_tokenizer_out)
         llm_embeddings = self.llm.get_llm_embeddings(elm_input_ids)
         elm_inputs_embeds = self.inject_projected_embeds(llm_embeddings, projected_embeds, signal_id_indices)
         out = self.llm.generate(elm_input_ids = None,
