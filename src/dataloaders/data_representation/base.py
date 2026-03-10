@@ -142,22 +142,6 @@ class Base(Dataset):
         padding_len = self.args.llm_input_len - len(tokens)
         return [self.llm_tokenizer.pad_token_id] * padding_len + tokens  # left side padding
 
-    def truncate_input_preserving_signal_tokens(self, tokens: list[int]) -> list[int]:
-        overflow = len(tokens) - self.args.llm_input_len
-        if overflow <= 0:
-            return tokens
-
-        signal_token_id = self.llm_tokenizer.convert_tokens_to_ids(SIGNAL_TOKEN_PLACEHOLDER)
-        bos_token_id = next(iter(HF_LLMS[self.args.llm]["watch_tokens"]["bos_token"]))
-        truncated = []
-        for token in tokens:
-            if overflow > 0 and token != signal_token_id and token != bos_token_id:
-                overflow -= 1
-                continue
-            truncated.append(token)
-
-        return truncated[-self.args.llm_input_len :]
-
     def make_prompt(
         self,
         text: str,
@@ -173,10 +157,10 @@ class Base(Dataset):
         for turn in text:
             if self.args.dev and is_main():
                 print("turn", turn)
-
-            is_human = turn["from"].lower() in ["human", "user"]
+            speaker = turn.get("from", turn.get("role", "")).lower()
+            is_human = speaker in ["human", "user"]
             role = prompt.roles[0] if is_human else prompt.roles[1]
-            message_value = self.clean_text(turn["value"])
+            message_value = self.clean_text(turn.get("value", turn.get("content", "")))
 
             if is_human and turn_count == 0:
                 message_value = f"{signal_token_placeholders}{message_value}"
@@ -194,6 +178,27 @@ class Base(Dataset):
                 print(f"Signal token ID {signal_token_id} not found in input IDs.")
             return [-1]
         return indices
+
+    def truncate_input_preserving_signal_tokens(self, tokens: list[int]) -> list[int]:
+        limit = self.args.llm_input_len
+        overflow = len(tokens) - limit
+        if overflow <= 0:
+            return tokens
+
+        signal_token_id = self.llm_tokenizer.convert_tokens_to_ids(SIGNAL_TOKEN_PLACEHOLDER)
+        bos_token_id = next(iter(HF_LLMS[self.args.llm]["watch_tokens"]["bos_token"]))
+        protected = {signal_token_id, bos_token_id}
+        labels = self.create_labels(tokens)
+        first_signal_idx = next((i for i, t in enumerate(tokens) if t == signal_token_id), len(tokens))
+
+        def priority(i):
+            if i < first_signal_idx:
+                return 2
+            return 1 if labels[i] != -100 else 0
+
+        droppable = sorted([i for i, t in enumerate(tokens) if t not in protected], key=priority)
+        drop = set(droppable[:overflow])
+        return [t for i, t in enumerate(tokens) if i not in drop][-limit:]
 
     def split_prompt(self, prompt: str) -> Tuple[str, str]:
         splitted_prompt = prompt.split(SIGNAL_TOKEN_PLACEHOLDER, 1)
@@ -232,10 +237,10 @@ class Base(Dataset):
 
     def blackout_ecg(self):
         c = np.random.choice(np.arange(10))
-        return np.full((12, self.args.segment_len), c)
+        return np.full((len(self.args.leads), self.args.segment_len), c)
 
     def gauss_noise_ecg(self):
-        return np.random.randn(12, self.args.segment_len)
+        return np.random.randn(len(self.args.leads), self.args.segment_len)
 
     def augment_ecg(self, signal):
         if random.random() < 0.5:
