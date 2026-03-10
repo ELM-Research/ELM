@@ -143,20 +143,40 @@ class Base(Dataset):
         return [self.llm_tokenizer.pad_token_id] * padding_len + tokens  # left side padding
 
     def truncate_input_preserving_signal_tokens(self, tokens: list[int]) -> list[int]:
-        overflow = len(tokens) - self.args.llm_input_len
+        limit = self.args.llm_input_len
+        overflow = len(tokens) - limit
         if overflow <= 0:
             return tokens
 
         signal_token_id = self.llm_tokenizer.convert_tokens_to_ids(SIGNAL_TOKEN_PLACEHOLDER)
         bos_token_id = next(iter(HF_LLMS[self.args.llm]["watch_tokens"]["bos_token"]))
-        truncated = []
-        for token in tokens:
-            if overflow > 0 and token != signal_token_id and token != bos_token_id:
-                overflow -= 1
-                continue
-            truncated.append(token)
+        keep = [True] * len(tokens)
+        labels = self.create_labels(tokens)
+        first_signal_idx = next((i for i, t in enumerate(tokens) if t == signal_token_id), len(tokens))
 
-        return truncated[-self.args.llm_input_len :]
+        def drop(priority: int) -> None:
+            nonlocal overflow
+            for i, token in enumerate(tokens):
+                if overflow == 0:
+                    return
+                if not keep[i] or token in (signal_token_id, bos_token_id):
+                    continue
+                region = 2 if i < first_signal_idx else (1 if labels[i] != -100 else 0)
+                if region == priority:
+                    keep[i] = False
+                    overflow -= 1
+
+        for priority in (0, 1, 2):  # user text, model response, system prompt
+            drop(priority)
+        if overflow > 0:  # only non-removable tokens left
+            for i, token in enumerate(tokens):
+                if overflow == 0:
+                    break
+                if keep[i] and token not in (signal_token_id, bos_token_id):
+                    keep[i] = False
+                    overflow -= 1
+
+        return [token for i, token in enumerate(tokens) if keep[i]][-limit:]
 
     def make_prompt(
         self,
