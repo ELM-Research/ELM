@@ -16,7 +16,6 @@ def run_train(
     if getattr(args, "distributed", False) and hasattr(getattr(dataloader, "sampler", None), "set_epoch"):
         dataloader.sampler.set_epoch(epoch)
     show_progress = is_main()
-
     total_loss = 0
     total_steps = 0
     progress = tqdm(
@@ -27,9 +26,7 @@ def run_train(
     )
     total_steps_per_epoch = len(dataloader)
     device = next(nn.parameters()).device
-
     accum_steps = getattr(args, "grad_accum_steps", 1)
-    optimizer.zero_grad()
 
     for step, batch in enumerate(progress):
         batch = {k: batch_to_device(v, device) for k, v in batch.items()}
