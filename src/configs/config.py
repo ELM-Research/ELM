@@ -53,6 +53,7 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--norm_eps", type=float, default=1e-6, help="Please choose the normalization epsilon")
     if mode in {"eval", "inference"}:
         parser.add_argument("--eval_batch_size", type=int, default=1, help="Batch size for batched generation during eval/inference")
+        parser.add_argument("--full_determinism", action="store_true", help="Cast LLM to float64 and force greedy decoding for fully deterministic results across batch sizes and GPUs")
 
     if mode == "train":
         parser.add_argument("--optimizer", type=str, default="adam", choices=["adam", "adamw", "muon"], help="Optimizer type")

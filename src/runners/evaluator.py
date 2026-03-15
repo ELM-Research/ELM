@@ -440,6 +440,20 @@ def evaluate(elm, dataloader, args, debug_file=None):
     # Unwrap DDP for generate()
     gen_model = elm.module if hasattr(elm, "module") else elm
 
+    # --full_determinism: cast LLM + projection to float64 and force greedy decoding
+    full_determinism = getattr(args, "full_determinism", False)
+    original_dtype = None
+    if full_determinism:
+        original_dtype = next(gen_model.llm.parameters()).dtype
+        if original_dtype != torch.float64:
+            gen_model.llm.double()
+            if hasattr(gen_model, "projection"):
+                gen_model.projection.double()
+
+    gen_kwargs = {}
+    if full_determinism:
+        gen_kwargs["do_sample"] = False
+
     local_results = []
 
     with torch.no_grad():
@@ -451,10 +465,14 @@ def evaluate(elm, dataloader, args, debug_file=None):
             }
             if needs_signal_injection:
                 enc_out = batch_to_device(batch["encoder_tokenizer_out"], device)
+                if full_determinism:
+                    model_dtype = next(gen_model.llm.parameters()).dtype
+                    enc_out = {k: v.to(dtype=model_dtype) if isinstance(v, torch.Tensor) and v.is_floating_point() else v
+                               for k, v in enc_out.items()}
                 gen_batch["encoder_tokenizer_out"] = enc_out
                 gen_batch["signal_id_indices"] = batch["signal_id_indices"].to(device)
 
-            gen_out = gen_model.generate(**gen_batch)  # [B, output_seq_len]
+            gen_out = gen_model.generate(**gen_batch, **gen_kwargs)  # [B, output_seq_len]
 
             B = gen_out.shape[0]
             for i in range(B):
@@ -466,6 +484,12 @@ def evaluate(elm, dataloader, args, debug_file=None):
                 gen_txt = dataset.get_generated_response_for_turn(prefix_ids, gen_ids)
 
                 local_results.append((gidx, gt, gen_txt, prefix_ids))
+
+    # Restore original dtype
+    if full_determinism and original_dtype is not None and original_dtype != torch.float64:
+        gen_model.llm.to(original_dtype)
+        if hasattr(gen_model, "projection"):
+            gen_model.projection.to(original_dtype)
 
     # --- Phase 3: Gather, deduplicate, reorder ---
     if distributed:

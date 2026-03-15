@@ -26,3 +26,6 @@ CUDA_VISIBLE_DEVICES=0 uv run src/main_evaluator.py \
 # --eval_batch_size 8 \
 # --system_prompt src/dataloaders/system_prompts/system_prompt.txt \
 # --elm_ckpt src/runs/llama-3.2-1b-instruct_st_mem/ecg-instruct-45k-250-2500/4/checkpoints/epoch_best.pt
+
+# Add --full_determinism to force float64 + greedy decoding for identical results
+# across any batch size and GPU count (slower but fully deterministic)
