@@ -223,6 +223,37 @@ uv run src/main_evaluator.py \
   --elm_ckpt $PATH_TO_ELM_CKPT.pt
 ```
 
+## Chat
+To chat with your model, please have a sample *.npy file and a trained ELM checkpoint. Then run the following:
+
+```
+CUDA_VISIBLE_DEVICES=0 uv run src/main_chat.py \
+--llm qwen2.5-0.5b-instruct \
+--elm patch_elf \
+--system_prompt src/dataloaders/system_prompts/system_prompt.txt \
+--peft \
+--elm_ckpt $ELM_CHECKPOINT.pt \
+--num_encoder_tokens 100 \
+--data_representation signal
+```
+
+Currently, we have a pretrained checkpoint available in `examples/`. After running the script, please load in the ECG by typing the following in the first turn:
+
+```
+============================================================
+  ELM Chat Interface
+============================================================
+
+Commands:
+  /ecg <path>   Load an ECG signal (.npy file)
+  /clear        Clear conversation history
+  /quit         Exit
+
+You: /ecg $PATH_TO_SAMPLE.npy
+```
+
+After this turn, you can ask any question for N turns and all answers after will be conditioned on this loaded ECG. We do not currently support adding additional ECGs into one conversation.
+
 ## Key Flags
 
 | Flag | Description |
