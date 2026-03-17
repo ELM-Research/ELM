@@ -117,7 +117,7 @@ We utilize the following ECG-specific encoders.
 
 | ECG Encoders | `--encoder` | `--data_representation`|
 |-------|--------------------|-------|
-| [MERL]((https://arxiv.org/abs/2403.06659)) | `merl` | `signal` |
+| [MERL](https://arxiv.org/abs/2403.06659) | `merl` | `signal` |
 | [MLAE](https://ieeexplore.ieee.org/document/9980411) | `mlae` | `signal` |
 | [MTAE](https://ieeexplore.ieee.org/document/9980411) | `mtae` | `signal` |
 | [ST-Mem](https://arxiv.org/abs/2402.09450) | `st_mem` | `signal` |
