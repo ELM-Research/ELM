@@ -58,6 +58,10 @@ class BuildLLM:
         HF_LLMS[self.args.llm]["model_hidden_size"] = hf_llm.config.hidden_size
         assert HF_LLMS[self.args.llm]["model_hidden_size"] is not None, print("model_hidden_size")
         hf_llm = self.resize_and_report_embeddings(hf_llm)
+        if getattr(self.args, "gradient_checkpointing", False):
+            hf_llm.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+            if is_main():
+                print(f"[{self.args.llm}] gradient checkpointing enabled")
         if self.args.peft:
             hf_llm = self.build_peft(
                 hf_llm,

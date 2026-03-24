@@ -4,6 +4,7 @@ import wandb
 
 from utils.gpu_manager import is_main, train_dev_break
 from runners.helper import batch_to_device
+from configs.constants import HF_LLMS
 
 
 def run_train(
@@ -31,14 +32,16 @@ def run_train(
     device = next(nn.parameters()).device
     accum_steps = getattr(args, "grad_accum_steps", 1)
 
-    optimizer.zero_grad()
+    optimizer.zero_grad(set_to_none=True)
     accum_loss_for_log = 0.0
+    amp_dtype = HF_LLMS[args.llm]["native_dtype"]
 
     for step, batch in enumerate(progress):
         batch = {k: batch_to_device(v, device) for k, v in batch.items()}
 
-        out = nn(**batch)
-        raw_loss = out.loss
+        with torch.amp.autocast(device_type=device.type, dtype=amp_dtype):
+            out = nn(**batch)
+            raw_loss = out.loss
         loss = raw_loss / accum_steps
 
         total_loss += raw_loss.item()
@@ -54,7 +57,7 @@ def run_train(
                 torch.nn.utils.clip_grad_norm_(params, grad_clip)
 
             optimizer.step_and_update_lr()
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
             if getattr(args, "wandb", False) and is_main():
                 wandb.log(

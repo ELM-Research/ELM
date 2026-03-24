@@ -232,7 +232,7 @@ def evaluate(elm, dataloader, args):
     dataset = dataloader.dataset
     device = next(elm.parameters()).device
     all_refs, all_hyps, all_prompts = [], [], []
-    with torch.no_grad():
+    with torch.inference_mode():
         for batch_idx, batch in enumerate(progress):
             B = batch["elm_input_ids"].shape[0]
             for b in range(B):

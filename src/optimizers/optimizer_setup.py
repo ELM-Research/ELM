@@ -212,8 +212,8 @@ class Optimizer:
         self.optimizer.step()
         self.n_current_steps += 1
 
-    def zero_grad(self):
-        self.optimizer.zero_grad()
+    def zero_grad(self, set_to_none: bool = True):
+        self.optimizer.zero_grad(set_to_none=set_to_none)
 
     @property
     def learning_rate(self):
