@@ -20,7 +20,7 @@ class CNNPatchProjection(nn.Module):
         self.input_dtype = HF_LLMS[llm_id]["native_dtype"]
 
         self.conv1 = nn.Conv1d(num_leads, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(64, 128, kernel_size=7, padding=3)
         self.pool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(128, HF_LLMS[llm_id]["model_hidden_size"])
 
