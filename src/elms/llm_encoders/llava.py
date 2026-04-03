@@ -4,18 +4,17 @@ import torch
 
 class LLaVA(nn.Module):
     def __init__(self, llm: nn.Module, encoder: nn.Module,
-                 projection: nn.Module, update_encoder: bool = False, only_text: bool = False):
+                 projection: nn.Module, update: set, only_text: bool = False):
         super(LLaVA, self).__init__()
         self.llm = llm
         self.encoder = encoder
         self.projection = projection
-        self.update_encoder = update_encoder
-        self._set_encoder_trainable(self.update_encoder)
+        self.update = update
         self.only_text = only_text
-
-    def _set_encoder_trainable(self, trainable: bool) -> None:
-        for p in self.encoder.parameters():
-            p.requires_grad = trainable
+        for name, module in [("encoder", self.encoder), ("connector", self.projection), ("llm", self.llm)]:
+            requires_grad = name in self.update
+            for p in module.parameters():
+                p.requires_grad = requires_grad
 
     def forward(self, elm_input_ids, elm_attention_mask, elm_labels, signal_id_indices,
                 encoder_tokenizer_out):
@@ -31,14 +30,12 @@ class LLaVA(nn.Module):
 
     def train(self, mode: bool = True):
         super().train(mode)
-        if self.update_encoder:
-            self.encoder.train(mode)
-        else:
-            self.encoder.eval()
+        for name, module in [("encoder", self.encoder), ("connector", self.projection), ("llm", self.llm)]:
+            module.train(mode if name in self.update else False)
         return self
 
     def get_projections(self, encoder_tokenizer_out):
-        if self.update_encoder:
+        if "encoder" in self.update:
             signal_embeds = self.encoder.get_encoder_embeddings(**encoder_tokenizer_out)
         else:
             with torch.no_grad():

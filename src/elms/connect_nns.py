@@ -59,7 +59,7 @@ class ConnectNN:
         projection_layer = LinearProjection(projection_dim, self.args.llm)
         encoder_llm = LLaVA(
             self.llm_components["llm"], self.encoder_components["encoder"],
-            projection_layer, self.args.update_encoder,
+            projection_layer, set(self.args.update),
             True if self.args.perturb == "only_text" else False)
         return {"elm": encoder_llm}
 
@@ -70,6 +70,7 @@ class ConnectNN:
         projection_dim = len(self.args.leads) * self.args.segment_len
         projection_layer = LinearProjection(projection_dim, self.args.llm)
         encoder_llm = BaseElf(self.llm_components["llm"], projection_layer,
+                           set(self.args.update),
                            True if self.args.perturb == "only_text" else False)
         return {"elm": encoder_llm}
 
@@ -82,6 +83,7 @@ class ConnectNN:
         patch_dim = num_leads * (self.args.segment_len // num_patches)
         projection_layer = PatchProjection(num_patches, patch_dim, self.args.llm)
         encoder_llm = BaseElf(self.llm_components["llm"], projection_layer,
+                           set(self.args.update),
                            True if self.args.perturb == "only_text" else False)
         return {"elm": encoder_llm}
 
@@ -93,5 +95,6 @@ class ConnectNN:
             f"segment_len ({self.args.segment_len}) must be divisible by num_encoder_tokens ({num_patches})"
         projection_layer = CNNPatchProjection(num_patches, num_leads, self.args.llm)
         encoder_llm = BaseElf(self.llm_components["llm"], projection_layer,
+                           set(self.args.update),
                            True if self.args.perturb == "only_text" else False)
         return {"elm": encoder_llm}
