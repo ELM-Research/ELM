@@ -3,11 +3,22 @@ import torch
 
 
 class BaseElf(nn.Module):
-    def __init__(self, llm: nn.Module, project_layer: nn.Module, only_text: bool = False):
+    def __init__(self, llm: nn.Module, project_layer: nn.Module, update: set, only_text: bool = False):
         super(BaseElf, self).__init__()
         self.project_layer = project_layer
         self.llm = llm
+        self.update = update
         self.only_text = only_text
+        for name, module in [("connector", self.project_layer), ("llm", self.llm)]:
+            requires_grad = name in self.update
+            for p in module.parameters():
+                p.requires_grad = requires_grad
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+        for name, module in [("connector", self.project_layer), ("llm", self.llm)]:
+            module.train(mode if name in self.update else False)
+        return self
 
     def forward(self, elm_input_ids, encoder_tokenizer_out,
                 elm_attention_mask, elm_labels, signal_id_indices):
