@@ -26,16 +26,26 @@ def fmt(n):
     return str(n)
 
 
+COMPONENT_ALIASES = {"projection": "connector", "project_layer": "connector"}
+
+
 def main():
     args = get_args("eval")
     tokenizer = build_tokenizer(args)
     elm = BuildELM(args).build_elm(tokenizer)["elm"]
 
+    header = f"[{args.elm}] llm={args.llm}"
+    if args.encoder:
+        header += f"  encoder={args.encoder}"
+    print(f"\n{header}")
+    print("-" * len(header))
+
     total = 0
     for name, module in elm.named_children():
         n = sum(p.numel() for p in module.parameters())
         total += n
-        print(f"  {name:<20s} {fmt(n):>10s}  ({n:,})")
+        label = COMPONENT_ALIASES.get(name, name)
+        print(f"  {label:<20s} {fmt(n):>10s}  ({n:,})")
     print(f"  {'TOTAL':<20s} {fmt(total):>10s}  ({total:,})")
 
 
