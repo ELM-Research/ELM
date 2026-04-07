@@ -7,7 +7,7 @@
 </div>
 
 ## News
-- **[February 23, 2026]** We have officially moved from [willxxy/ECG-Bench](https://github.com/willxxy/ECG-Bench/) to [ELM-Researc/ELM](https://github.com/ELM-Research/ELM). There are major updates to the documentation and flow of the code. Please read the documentation and feel free to post any issues!
+- **[February 23, 2026]** We have officially moved from [willxxy/ECG-Bench](https://github.com/willxxy/ECG-Bench/) to [ELM-Researc/ELM](https://github.com/ELM-Research/ECG-Language-Models). There are major updates to the documentation and flow of the code. Please read the documentation and feel free to post any issues!
 
 <!-- <details>
   <summary><strong>Show Older News</strong></summary>
@@ -23,7 +23,7 @@
 
 ## Overview <a name="overview"></a>
 A research framework for finetuning and evaluating ECG-language models (ELMs). Supports multiple architectures, training objectives, and data representations with distributed training out of the box.
-Prepare datasets with [ecg_preprocess](https://github.com/ELM-Research/ecg_preprocess) before use. Additionally, if you want to pretrain an ECG encoder, please view [ecg_nn](https://github.com/ELM-Research/ecg_nn).
+Prepare datasets with [ecg_preprocess](https://github.com/ELM-Research/ECG-Preprocess) before use. Additionally, if you want to pretrain an ECG encoder, please view [ecg_nn](https://github.com/ELM-Research/ECG-Neural-Networks).
 
 We hope to continuously update the repository to support more features, ELMs, and datasets. Please feel free to contribute to the repository!
 If there are any questions or bugs, please do not hesitate to reach out to wjhan{@}andrew{dot}cmu{edu} or submit an issue with corresponding details.
