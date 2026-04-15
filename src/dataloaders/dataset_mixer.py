@@ -1,3 +1,4 @@
+import copy
 from datasets import load_dataset
 import json
 from transformers import AutoTokenizer, AutoProcessor
@@ -103,7 +104,7 @@ class DatasetMixer:
         if getattr(llm_tokenizer, "pad_token", None) is None:  # llama 3.2
             llm_tokenizer.pad_token = llm_tokenizer.eos_token
 
-        tokens_to_add = HF_LLMS[self.args.llm]["tokens_to_add"]
+        tokens_to_add = copy.deepcopy(HF_LLMS[self.args.llm]["tokens_to_add"])
         tokens_to_add["additional_special_tokens"].append(SIGNAL_TOKEN_PLACEHOLDER)
         if getattr(self.args, "train_phase", "sft") == "rl":
             tokens_to_add["additional_special_tokens"].extend(RL_TOKENS)

@@ -20,5 +20,13 @@ def answer_reward(text: str, gt: str) -> float:
     return len(r & g) / max(len(g), 1)
 
 
+def compute_reward_components(text: str, gt: str) -> tuple[float, float]:
+    """Return (format_reward, answer_reward) to aid RL diagnostics."""
+    fmt = format_reward(text)
+    ans = answer_reward(text, gt)
+    return fmt, ans
+
+
 def compute_reward(text: str, gt: str) -> float:
-    return format_reward(text) + answer_reward(text, gt)
+    fmt, ans = compute_reward_components(text, gt)
+    return fmt + ans

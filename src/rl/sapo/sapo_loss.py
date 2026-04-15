@@ -69,11 +69,13 @@ def compute_policy_loss_sapo(
     pg_clipfrac = torch.tensor(0.0, device=pg_loss.device)
     pg_clipfrac_lower = torch.tensor(0.0, device=pg_loss.device)
     # compute KL for metrics tracking
-    ppo_kl = masked_mean(-negative_approx_kl, response_mask)
+    log_ratio = negative_approx_kl
+    ppo_kl = 0.5 * masked_mean(log_ratio.pow(2), response_mask)
     # return metrics dict
     pg_metrics = {
         "actor/pg_clipfrac": pg_clipfrac.detach().item(),
         "actor/ppo_kl": ppo_kl.detach().item(),
+        "actor/log_ratio_mean": masked_mean(log_ratio, response_mask).detach().item(),
         "actor/pg_clipfrac_lower": pg_clipfrac_lower.detach().item(),
     }
 
