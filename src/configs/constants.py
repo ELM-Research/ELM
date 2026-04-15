@@ -83,6 +83,18 @@ HF_DATASETS = [
     "ecg-qa-cot-not-cot",
     #
     "ecg-r1-no-rl",
+    #
+    "pretrain-agh8",
+    "pretrain-agh9",
+    "pretrain-agh10",
+    #
+    "ecg-instruct-ecg-r1",
+    #
+    "base-ecg-r1",
+    #
+    "rl-ecg-r1",
+    #
+    "ecg-qa-cot",
 ]
 
 HF_LLMS = {
