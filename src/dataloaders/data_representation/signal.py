@@ -23,6 +23,7 @@ class Signal(Base):
                 ecg_signal = self.augment_ecg(ecg_signal)
 
         ecg_signal, _ = self.normalize(ecg_signal)
+        # print("ecg_signal", ecg_signal.shape)
         encoder_tokenizer_out = {"ecg_signal": self.transform_ecg_signal(ecg_signal)}
 
         text = instance["text"]
@@ -44,6 +45,8 @@ class Signal(Base):
         signal_id_indices = self.find_signal_token_indices(truncated_padded_input)
         attention_mask = self.create_attention_mask(truncated_padded_input)
         labels = self.create_labels(truncated_padded_input)
+        # print("signal_id_indices", len(signal_id_indices), "\n")
+        assert len(signal_id_indices) == self.args.num_encoder_tokens
         assert len(truncated_padded_input) == len(attention_mask) == len(labels) == self.args.llm_input_len, (
             f"Length mismatch: {len(truncated_padded_input)} != {len(attention_mask)} != {len(labels)} != {self.args.llm_input_len}"
         )
@@ -75,6 +78,7 @@ class Signal(Base):
         prompt_tokens = self.llm_tokenizer.encode(prompt, add_special_tokens=False)
         if "train" in self.args.mode:
             prompt_len = len(prompt_tokens)
+            # print("prompt len", prompt_len, "\n")
             if prompt_len == self.args.llm_input_len:
                 return prompt_tokens
             elif prompt_len < self.args.llm_input_len:
@@ -84,6 +88,7 @@ class Signal(Base):
             return prompt_tokens
 
     def transform_ecg_signal(self, ecg_signal):
-        if self.args.elm == "fuyu":
-            ecg_signal = ecg_signal.flatten()
-        return ecg_signal
+        if self.args.elm == "base_elf":
+            return ecg_signal.flatten()
+        else:
+            return ecg_signal
