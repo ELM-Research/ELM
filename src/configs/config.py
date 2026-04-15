@@ -23,6 +23,7 @@ def get_args(mode: Mode) -> argparse.Namespace:
             type=str,
             nargs="+",
         )
+        parser.add_argument("--max_new_tokens", type = int, default = 128)
         parser.add_argument("--scratch", action="store_true", default=False, help="Use randomly initialized LLM instead of pretrained weights")
         parser.add_argument("--leads", type=int, nargs="+", default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], help="leads to use")
         parser.add_argument("--data_subset", type=float, default=None, help="Subset of data to use (between 0 and 1)")
@@ -49,11 +50,11 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--distributed", action="store_true", default=None, help="Enable distributed training")
         parser.add_argument("--torch_compile", action="store_true", default=None,
                             help="Torch compile the model (should really only be used during pretraining or large finetuning.)")
-        parser.add_argument("--train_phase", type=str, default="sft", choices=["pretrain", "sft", "rl"],
-                            help="Training phase: pretrain (raw text + bos/signal/eos, no chat template), sft (chat template), rl (sft + think/answer special tokens)")
         parser.add_argument("--llm_input_len", type=int, default=2048, help="LLM Input Sequence Length")
         parser.add_argument("--min_ecg_tokens_len", type=int, default=512, help="Minimum ECG token length to consider")
         parser.add_argument("--norm_eps", type=float, default=1e-6, help="Please choose the normalization epsilon")
+        parser.add_argument("--train_phase", type=str, default="sft", choices=["pretrain", "sft", "rl"],
+                            help="Training phase: pretrain (raw text + bos/signal/eos, no chat template), sft (chat template), rl (sft + think/answer special tokens)")
     if mode == "train":
         parser.add_argument("--optimizer", type=str, default="adam", choices=["adam", "adamw", "muon"], help="Optimizer type")
         parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
@@ -78,6 +79,7 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--grad_clip", type=float, default=0.0, help="Max gradient norm for clipping (0 to disable)")
         parser.add_argument("--scale_wd", type=str, default="none", choices=["none", "inv_sqrt", "inv_linear"])
         parser.add_argument("--resume_ckpt", type=str, default=None, help="Full training resume: restores model, optimizer, and LR schedule state")
+
         # RL (train_phase=rl) — agnostic policy-gradient pipeline
         parser.add_argument("--rl_algo", type=str, default="sapo", choices=["sapo"], help="RL policy-loss algorithm")
         parser.add_argument("--rl_group_size", type=int, default=4, help="G: rollouts per prompt for group-relative advantage")

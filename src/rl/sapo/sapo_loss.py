@@ -1,7 +1,7 @@
 import torch
 from typing import Any
 
-from src.rl.common_funcs import agg_loss, masked_mean
+from rl.common_funcs import agg_loss, masked_mean
 
 def compute_policy_loss_sapo(
     old_log_prob: torch.Tensor,
@@ -37,9 +37,6 @@ def compute_policy_loss_sapo(
     tau_pos = torch.as_tensor(tau_pos, dtype=advantages.dtype, device=advantages.device)
     tau_neg = torch.as_tensor(tau_neg, dtype=advantages.dtype, device=advantages.device)
 
-    # compute IS at token level:
-    # r_{i,t}(θ) = π_θ(y_{i,t}|x, y_{i,<t}) / π_θold(y_{i,t}|x, y_{i,<t})]
-    # In log space: log(r_{i,t}(θ)) = log_prob - ol_log_prob
     negative_approx_kl = (log_prob - old_log_prob).clamp(min=-20.0, max=20.0)
     ratio = negative_approx_kl.exp()
 
@@ -50,6 +47,7 @@ def compute_policy_loss_sapo(
         other=tau_neg,  # if A_{i,t} <= 0 we set to tau_neg
     )
 
+    # compute the gates f_{i,t}(r_{i,t}(θ)) at token level
     gates = torch.sigmoid(taus * (ratio - 1.0)) * (4.0 / taus)
 
     # compute policy gradient loss
