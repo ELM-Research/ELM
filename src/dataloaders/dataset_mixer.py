@@ -6,7 +6,7 @@ from utils.dir_file_manager import DirFileManager
 from utils.gpu_manager import is_main
 
 from configs.constants import HF_DATASETS, HF_LLMS, SIGNAL_TOKEN_PLACEHOLDER,\
-                                VISION_ENCODERS, ECG_ENCODERS, ECG_TOKEN_PREFIX, RL_TOKENS
+                                VISION_ENCODERS, ECG_TOKEN_PREFIX, RL_TOKENS
 
 class DatasetMixer:
     def __init__(
@@ -103,9 +103,11 @@ class DatasetMixer:
         if getattr(llm_tokenizer, "pad_token", None) is None:  # llama 3.2
             llm_tokenizer.pad_token = llm_tokenizer.eos_token
 
-        tokens_to_add = HF_LLMS[self.args.llm]["tokens_to_add"]
+        tokens_to_add = {
+            k: list(v) if isinstance(v, list) else v
+            for k, v in HF_LLMS[self.args.llm]["tokens_to_add"].items()}
         tokens_to_add["additional_special_tokens"].append(SIGNAL_TOKEN_PLACEHOLDER)
-        if getattr(self.args, "train_phase", "sft") == "rl":
+        if self.args.train_phase in ["sft", "rl"]:
             tokens_to_add["additional_special_tokens"].extend(RL_TOKENS)
         llm_tokenizer.add_special_tokens(tokens_to_add)
 

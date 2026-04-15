@@ -1,8 +1,9 @@
 import argparse
-
+import numpy as np
 import torch
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
+from collections.abc import Mapping, Sequence
 
 from utils.gpu_manager import get_world_size, get_rank
 
@@ -53,7 +54,7 @@ class BuildDataLoader:
         torch_dataset,
     ):
         if self.args.distributed:
-            sampler = DistributedSampler(torch_dataset, num_replicas=get_world_size(), 
+            sampler = DistributedSampler(torch_dataset, num_replicas=get_world_size(),
                                          rank=get_rank(), seed=self.args.seed, shuffle=True)
         else:
             sampler = None
@@ -63,5 +64,51 @@ class BuildDataLoader:
         batch = [item for item in batch if item is not None]
         if len(batch) == 0:
             return None
-
+        self._assert_same_structure_and_shapes(batch)
         return torch.utils.data.dataloader.default_collate(batch)
+
+    def _get_structure_shapes(self, x, path="root"):
+        shapes = {}
+
+        if torch.is_tensor(x):
+            shapes[path] = ("tensor", tuple(x.shape))
+            return shapes
+
+        if isinstance(x, np.ndarray):
+            shapes[path] = ("ndarray", tuple(x.shape))
+            return shapes
+
+        if isinstance(x, Mapping):
+            for k, v in x.items():
+                shapes.update(self._get_structure_shapes(v, f"{path}.{k}"))
+            return shapes
+
+        if isinstance(x, Sequence) and not isinstance(x, (str, bytes)):
+            for i, v in enumerate(x):
+                shapes.update(self._get_structure_shapes(v, f"{path}[{i}]"))
+            return shapes
+
+        shapes[path] = type(x).__name__
+        return shapes
+
+    def _assert_same_structure_and_shapes(self, batch):
+        ref = self._get_structure_shapes(batch[0])
+
+        for i, item in enumerate(batch[1:], start=1):
+            cur = self._get_structure_shapes(item)
+
+            assert ref.keys() == cur.keys(), (
+                f"Structure mismatch between item 0 and item {i}\n"
+                f"item 0 keys: {sorted(ref.keys())}\n"
+                f"item {i} keys: {sorted(cur.keys())}"
+            )
+
+            for k in ref:
+                if ref[k] != cur[k]:
+                    print(f"\nMismatch at item {i}, key={k}")
+                    print(f"item 0: {ref[k]}")
+                    print(f"item {i}: {cur[k]}")
+                    raise AssertionError(
+                        f"Shape/type mismatch at {k} between item 0 and item {i}: "
+                        f"{ref[k]} vs {cur[k]}"
+                    )
