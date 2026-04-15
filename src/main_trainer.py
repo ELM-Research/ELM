@@ -11,7 +11,7 @@ from runners.trainer import run_train
 
 from utils.checkpoint_manager import CheckpointManager
 from utils.seed_manager import set_seed
-from utils.gpu_manager import is_main, init_dist, cleanup, GPUSetup, broadcast_value
+from utils.gpu_manager import is_main, init_dist, cleanup, GPUSetup, broadcast_value, get_world_size
 from utils.dir_file_manager import setup_experiment_folders
 from utils.wandb_manager import setup_wandb, cleanup_wandb
 
@@ -31,6 +31,7 @@ def main():
 
     if args.distributed:
         init_dist()
+    args.world_size = get_world_size()
 
     gc.collect()
     torch.cuda.empty_cache()

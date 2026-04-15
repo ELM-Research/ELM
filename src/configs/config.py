@@ -51,6 +51,11 @@ def get_args(mode: Mode) -> argparse.Namespace:
                             help="Torch compile the model (should really only be used during pretraining or large finetuning.)")
         parser.add_argument("--train_phase", type=str, default="sft", choices=["pretrain", "sft", "rl"],
                             help="Training phase: pretrain (raw text + bos/signal/eos, no chat template), sft (chat template), rl (sft + think/answer special tokens)")
+        parser.add_argument("--rl_loss", type=str, default="sapo", choices=["sapo"], help="RL loss to optimize")
+        parser.add_argument("--rl_loss_agg_mode", type=str, default="seq-mean-token-mean",
+                            choices=["token-mean", "seq-mean-token-sum", "seq-mean-token-sum-norm", "seq-mean-token-mean"])
+        parser.add_argument("--sapo_tau_pos", type=float, default=1.0, help="SAPO tau for positive advantages")
+        parser.add_argument("--sapo_tau_neg", type=float, default=1.05, help="SAPO tau for negative advantages")
         parser.add_argument("--llm_input_len", type=int, default=2048, help="LLM Input Sequence Length")
         parser.add_argument("--min_ecg_tokens_len", type=int, default=512, help="Minimum ECG token length to consider")
         parser.add_argument("--norm_eps", type=float, default=1e-6, help="Please choose the normalization epsilon")

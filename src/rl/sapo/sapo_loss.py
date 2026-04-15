@@ -1,7 +1,7 @@
 import torch
 from typing import Any
 
-from src.rl.common_funcs import agg_loss, masked_mean
+from rl.common_funcs import agg_loss, masked_mean
 
 def compute_policy_loss_sapo(
     old_log_prob: torch.Tensor,

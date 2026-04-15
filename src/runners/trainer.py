@@ -1,7 +1,9 @@
 import torch
+import inspect
 from tqdm import tqdm
 import wandb
 
+from rl.losses import compute_rl_loss
 from utils.gpu_manager import is_main, train_dev_break
 from runners.helper import batch_to_device
 
@@ -34,11 +36,16 @@ def run_train(
     optimizer.zero_grad()
     accum_loss_for_log = 0.0
 
+    forward_keys = set(inspect.signature(nn.forward).parameters)
     for step, batch in enumerate(progress):
         batch = {k: batch_to_device(v, device) for k, v in batch.items()}
+        model_batch = {k: v for k, v in batch.items() if k in forward_keys}
 
-        out = nn(**batch)
-        raw_loss = out.loss
+        out = nn(**model_batch)
+        if getattr(args, "train_phase", "sft") == "rl":
+            raw_loss, rl_metrics = compute_rl_loss(batch, out, args)
+        else:
+            raw_loss, rl_metrics = out.loss, {}
         loss = raw_loss / accum_steps
 
         total_loss += raw_loss.item()
@@ -57,13 +64,7 @@ def run_train(
             optimizer.zero_grad()
 
             if getattr(args, "wandb", False) and is_main():
-                wandb.log(
-                    {
-                        "train/step_loss": accum_loss_for_log,
-                        "train/lr": optimizer.learning_rate,
-                        "epoch": epoch,
-                    }
-                )
+                wandb.log({"train/step_loss": accum_loss_for_log, "train/lr": optimizer.learning_rate, "epoch": epoch, **rl_metrics})
 
             accum_loss_for_log = 0.0
 
