@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterable, Mapping
 from elms.connectors.linear_proj import LinearProjection
 from elms.connectors.patch_proj import PatchProjection
 from elms.connectors.cnn_patch_proj import CNNPatchProjection
+from elms.connectors.mlp_proj import MLPProjection
 
 from configs.constants import ECG_ENCODERS, VISION_ENCODERS
 
@@ -31,8 +32,8 @@ class ConnectNN:
     def connect_nn(
         self,
     ):
-        if self.args.elm == "llava":
-            encoder_llm_components = self.build_llava()
+        if self.args.elm in {"llava", "llava_mlp"}:
+            encoder_llm_components = self.build_llava(use_mlp=self.args.elm == "llava_mlp")
         elif self.args.elm == "base_elf":
             encoder_llm_components = self.build_base_elf()
         elif self.args.elm == "patch_elf":
@@ -48,15 +49,13 @@ class ConnectNN:
             allow_override=("find_unused_parameters",),
         )
 
-    def build_llava(
-        self,
-    ):
+    def build_llava(self, use_mlp: bool = False):
         from elms.llm_encoders.llava import LLaVA
         if self.args.encoder in VISION_ENCODERS:
             projection_dim = VISION_ENCODERS[self.args.encoder]["projection_dim"]
         else:
             projection_dim = ECG_ENCODERS[self.args.encoder]["projection_dim"]
-        projection_layer = LinearProjection(projection_dim, self.args.llm)
+        projection_layer = MLPProjection(projection_dim, self.args.llm) if use_mlp else LinearProjection(projection_dim, self.args.llm)
         encoder_llm = LLaVA(
             self.llm_components["llm"], self.encoder_components["encoder"],
             projection_layer, set(self.args.update),
