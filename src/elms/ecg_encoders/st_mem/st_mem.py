@@ -11,7 +11,6 @@
 # MAE: https://github.com/facebookresearch/mae
 # --------------------------------------------------------
 ### VIT ###
-from functools import partial
 from typing import Optional
 from torch import nn
 from dataclasses import dataclass
@@ -43,11 +42,6 @@ class ST_MEMConfig:
         if self.d_model is None:
             self.d_model = self.embed_dim
 
-
-@dataclass
-class ST_MEMOutput:
-    loss: Optional[torch.Tensor]
-    out: Optional[torch.Tensor]
 
 class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks)."""
@@ -363,7 +357,6 @@ class ST_MEM_ViT(nn.Module):
         # remove SEP embeddings
         x = rearrange(x, "b (c n) p -> b c n p", c=num_leads)
         x = x[:, :, 1:-1, :]
-        print("inside", x.shape)
 
         # x = torch.mean(x, dim=(1, 2))
         # print("inside2", x.shape)
@@ -425,3 +418,5 @@ class ST_MEM(nn.Module):
 
     def forward(self, ):
         raise NotImplementedError
+
+

@@ -115,8 +115,6 @@ class MLAE_ViT(ViT):
 
 from functools import partial
 
-from einops import rearrange
-
 __all__ = ["MLAE", "MLAEConfig"]
 
 

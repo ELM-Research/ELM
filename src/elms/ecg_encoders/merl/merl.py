@@ -1,7 +1,5 @@
-import torch
 from torch import nn
 from dataclasses import dataclass
-from typing import Optional
 
 from elms.ecg_encoders.merl.blocks import get_resnet
 
