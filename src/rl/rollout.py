@@ -6,8 +6,8 @@ from rl.rewards import compute_reward
 
 
 def _unwrap(m):
-    m = getattr(m, "_orig_mod", m)                      # torch.compile
-    return m.module if hasattr(m, "module") else m      # DDP
+    m = getattr(m, "_orig_mod", m)
+    return m.module if hasattr(m, "module") else m
 
 
 def _eos_set(llm_name: str) -> set:
@@ -113,5 +113,4 @@ def rollout_group(model, batch: dict, item_idx: int, tokenizer, args) -> dict:
 
 def current_log_prob(model, ro: dict) -> torch.Tensor:
     """Log-prob of rollout under the current (post-update) policy (keeps DDP graph)."""
-    return _log_prob_at_response(model, ro["full_ids"], ro["full_attn"],
-                                 ro["sig_idx"], ro["enc_out"], ro["pL"])
+    return _log_prob_at_response(model, ro["full_ids"], ro["full_attn"], ro["sig_idx"], ro["enc_out"], ro["pL"])

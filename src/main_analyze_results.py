@@ -57,8 +57,7 @@ def load_run_config(json_dir):
 def derive_model_name(json_dir):
     cfg = load_run_config(json_dir)
     if cfg:
-        elm_name = "elf" if cfg.get('elm', '?') == "fuyu" else cfg.get('elm', '?')
-        return f"ELM: {elm_name}\nLLM: {cfg.get('llm', '?')}\nEncoder: {cfg.get('encoder', '?')}"
+        return f"ELM: {cfg.get('elm', '?')}\nLLM: {cfg.get('llm', '?')}\nEncoder: {cfg.get('encoder', '?')}\n# of Tokens: {cfg.get('num_encoder_tokens', '?')}"
     p = Path(json_dir).resolve()
     return p.parent.parent.parent.name if p.name == "checkpoints" else p.name
 

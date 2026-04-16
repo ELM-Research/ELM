@@ -76,7 +76,7 @@ def prepare_generation_input(prompt_str, llm_tokenizer, ecg_tensor, args, device
     if not signal_indices:
         signal_indices = [-1]
 
-    needs_signal = args.elm in ("llava", "base_elm", "patch_elm", "base_elf", "patch_elf")
+    needs_signal = args.elm in ("llava", "base_elf", "patch_elf", "conv_elf")
 
     gen_batch = {
         "elm_input_ids": torch.tensor(input_ids, dtype=torch.int64).unsqueeze(0),

@@ -24,6 +24,7 @@ def run_rl_train(nn, optimizer, dataloader, epoch, args, checkpoint_manager=None
     loss_fn = get_rl_loss(args.rl_algo)
     algo_kw = get_loss_kwargs(args.rl_algo, args)
     tokenizer = dataloader.dataset.llm_tokenizer
+
     optimizer.zero_grad()
     for step, batch in enumerate(progress):
         batch = {k: batch_to_device(v, device) for k, v in batch.items()}
@@ -37,6 +38,8 @@ def run_rl_train(nn, optimizer, dataloader, epoch, args, checkpoint_manager=None
                                     advantages=ro["advantages"], response_mask=ro["resp_mask"],
                                     global_batch_size=gbs, **algo_kw)
             (loss / accum_steps).backward()
+            print(loss)
+            print(ro["mean_reward"])
             step_loss += loss.detach().item()
             step_reward += ro["mean_reward"]
             last_metrics = metrics

@@ -250,7 +250,7 @@ def save_incorrect_predictions_histogram_png(references, hypotheses, path, top_k
 def evaluate(elm, dataloader, args):
     show_progress = is_main()
     elm.eval()
-    needs_signal_injection = args.elm in ("llava", "base_elf", 
+    needs_signal_injection = args.elm in ("mlp_llava", "linear_llava", "base_elf",
                                           "patch_elf", "conv_elf")
     progress = tqdm(
         dataloader,

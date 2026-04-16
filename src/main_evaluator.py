@@ -32,7 +32,7 @@ def main():
         ckpt_file_name = "no_ckpt"
     sys_prompt_name = Path(args.system_prompt).stem
     data_name = "_".join(args.data)
-    results_file = os.path.join(checkpoint_dir, f"{ckpt_file_name}_{data_name}_{sys_prompt_name}_{args.perturb}.json")
+    results_file = os.path.join(checkpoint_dir, f"{ckpt_file_name}_{data_name}_{sys_prompt_name}_{args.perturb}_{args.max_new_tokens}.json")
     for fold in folds:
         for seed in seeds:
             print(f"Evaluating fold {fold} with seed {seed}")
@@ -50,18 +50,18 @@ def main():
             out = evaluate(elm, dataloader, args)
             all_metrics.append(out)
             if len(all_metrics) == 1:
-                examples_path = results_file.replace(".json", "_examples.json")
+                examples_path = results_file.replace(".json", f"examples_{args.max_new_tokens}.json")
                 examples = [{"prompt": p, "predicted": h, "ground_truth": r}
                             for p, h, r in zip(out["prompts"], out["hypotheses"], out["references"])]
                 with open(examples_path, "w") as ef:
                     json.dump(examples, ef, indent=2)
                 print(f"Saved {len(examples)} eval examples to {examples_path}")
         if "confusion_matrix" in out:
-            cm_path = results_file.replace(".json", f"{fold}_{seed}.png")
+            cm_path = results_file.replace(".json", f"{fold}_{seed}_{args.max_new_tokens}.png")
             save_confusion_matrix_png(out["confusion_matrix"], cm_path)
-            other_path = results_file.replace(".json", f"{fold}_{seed}_other.png")
+            other_path = results_file.replace(".json", f"{fold}_{seed}_{args.max_new_tokens}_other.png")
             save_other_outputs_histogram_png(out["other_output_counts"], other_path, top_k = 10)
-        incorrect_path = results_file.replace(".json", f"{fold}_{seed}_incorrect.png")
+        incorrect_path = results_file.replace(".json", f"{fold}_{seed}_{args.max_new_tokens}_incorrect.png")
         save_incorrect_predictions_histogram_png(out["references"], out["hypotheses"], incorrect_path)
     statistical_results = run_statistical_analysis(all_metrics)
     with open(results_file, "w") as f:

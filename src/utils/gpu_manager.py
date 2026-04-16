@@ -35,7 +35,9 @@ def barrier():
 
 def cleanup():
     if dist.is_available() and dist.is_initialized():
-        dist.destroy_process_group()
+        try:
+            dist.destroy_process_group()
+        except OSError: pass
 
 
 def broadcast_value(val, src: int = 0):
