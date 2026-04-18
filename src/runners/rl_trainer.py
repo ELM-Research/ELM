@@ -39,8 +39,6 @@ def run_rl_train(nn, optimizer, dataloader, epoch, args, checkpoint_manager=None
                                     advantages=ro["advantages"], response_mask=ro["resp_mask"],
                                     global_batch_size=gbs, dp_size=dp_size, **algo_kw)
             (loss / accum_steps).backward()
-            print(loss)
-            print(ro["mean_reward"])
             step_loss += loss.detach().item()
             step_reward += ro["mean_reward"]
             last_metrics = metrics
