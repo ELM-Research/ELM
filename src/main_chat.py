@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 from configs.config import get_args
-from configs.constants import HF_LLMS, SIGNAL_TOKEN_PLACEHOLDER
+from configs.constants import HF_LLMS, SIGNAL_TOKEN_PLACEHOLDER, RL_TOKENS
 from utils.chat_template_manager import get_conv_template
 from utils.gpu_manager import GPUSetup
 from utils.seed_manager import set_seed
@@ -35,6 +35,7 @@ def build_tokenizer(args):
         llm_tokenizer.pad_token = llm_tokenizer.eos_token
     tokens_to_add = HF_LLMS[args.llm]["tokens_to_add"]
     tokens_to_add["additional_special_tokens"].append(SIGNAL_TOKEN_PLACEHOLDER)
+    tokens_to_add["additional_special_tokens"].extend(RL_TOKENS)
     llm_tokenizer.add_special_tokens(tokens_to_add)
     return llm_tokenizer
 
@@ -76,7 +77,7 @@ def prepare_generation_input(prompt_str, llm_tokenizer, ecg_tensor, args, device
     if not signal_indices:
         signal_indices = [-1]
 
-    needs_signal = args.elm in ("llava", "base_elf", "patch_elf", "conv_elf")
+    needs_signal = args.elm in ("mlp_llava", "linear_llava", "base_elf", "patch_elf", "conv_elf")
 
     gen_batch = {
         "elm_input_ids": torch.tensor(input_ids, dtype=torch.int64).unsqueeze(0),
