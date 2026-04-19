@@ -34,7 +34,22 @@ def _pick_option(text: str, options: list[str]) -> str:
     return options[0]
 
 
-class ECGLMModel:
+class BaseModel:
+    ecg_modality_base = "signal"
+
+    @classmethod
+    def build_model(cls, model_variant=None):
+        raise NotImplementedError
+
+    def get_response(self, conversation, **kwargs) -> str:
+        raise NotImplementedError
+
+    @classmethod
+    def require_base64_image(cls):
+        return False
+
+
+class ECGLMModel(BaseModel):
     ecg_modality_base = "signal"
 
     def __init__(self, **kwargs):
@@ -93,18 +108,27 @@ class ECGLMModel:
         text = decode_response(in_ids, out, self.tokenizer, self.args)
         return _pick_option(text, conversation.conversation[-1]["options"])
 
+    @classmethod
+    def require_base64_image(cls):
+        return False
+
 
 def install_models_shim():
     import types
 
     shim = types.ModuleType("models")
 
+    def get_model_name(model):
+        return "ecglm"
+
     def build_model(model_name: str, **kwargs):
         if model_name != "ecglm":
             raise ValueError(f"Only model='ecglm' is supported by this bridge, got: {model_name}")
         return ECGLMModel.build_model(**kwargs)
 
+    shim.BaseModel = BaseModel
     shim.build_model = build_model
+    shim.get_model_name = get_model_name
     sys.modules["models"] = shim
 
 
