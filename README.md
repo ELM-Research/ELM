@@ -365,3 +365,26 @@ Lastly, we thank [HuggingFace](https://huggingface.co/) for providing the APIs f
 ## License
 
 MIT, except all third-party models and datasets used in the repository. Please refer to the third-party model and dataset's corresponding licenses.
+
+## ECG-Reasoning-Benchmark (minimal bridge)
+
+If you initialized the `ecg-reasoning-benchmark` submodule, you can run their `inference.py` directly with our checkpoints through a tiny adapter:
+
+```bash
+uv run scripts/erb_minimal.py \
+  --erb-dir ./ecg-reasoning-benchmark \
+  --llm qwen2.5-1.5b-instruct \
+  --encoder merl \
+  --elm llava \
+  --elm-ckpt /path/to/elm.pt \
+  --encoder-ckpt /path/to/encoder.pt \
+  -- \
+  ./ecg-reasoning-benchmark/data \
+  --dataset ptbxl \
+  --ecg-base-dir /path/to/ptbxl \
+  --output-dir ./results
+```
+
+Notes:
+- The adapter registers a new ERB model name: `ecglm`.
+- It keeps ERB's evaluation flow unchanged (same JSON output structure), so you can run ERB's `evaluation.py` as-is.
