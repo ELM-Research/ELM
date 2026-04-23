@@ -73,7 +73,6 @@ src/main_trainer.py \
 --beta2 0.95 \
 --muon_adamw_lr_ratio 0.1 \
 --llm_input_len 1024 \
---warmup 300 \
 --epochs 10 \
 --grad_clip 1.0 \
 --num_workers 16 \
@@ -99,7 +98,6 @@ src/main_trainer.py \
 --beta2 0.95 \
 --muon_adamw_lr_ratio 0.1 \
 --llm_input_len 1024 \
---warmup 300 \
 --epochs 10 \
 --grad_clip 1.0 \
 --num_workers 16 \
@@ -125,7 +123,6 @@ src/main_trainer.py \
 --beta2 0.95 \
 --muon_adamw_lr_ratio 0.1 \
 --llm_input_len 1024 \
---warmup 300 \
 --epochs 10 \
 --grad_clip 1.0 \
 --num_workers 16 \
@@ -152,7 +149,6 @@ src/main_trainer.py \
 --beta2 0.95 \
 --muon_adamw_lr_ratio 0.1 \
 --llm_input_len 1024 \
---warmup 300 \
 --epochs 10 \
 --grad_clip 1.0 \
 --num_workers 16 \

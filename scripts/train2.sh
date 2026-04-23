@@ -72,7 +72,6 @@ src/main_trainer.py \
 --beta1 0.9 \
 --beta2 0.95 \
 --llm_input_len 1024 \
---warmup 3000 \
 --epochs 10 \
 --grad_clip 1.0 \
 --num_workers 16 \
@@ -98,7 +97,6 @@ src/main_trainer.py \
 --beta1 0.9 \
 --beta2 0.95 \
 --llm_input_len 1024 \
---warmup 3000 \
 --epochs 10 \
 --grad_clip 1.0 \
 --num_workers 16 \
@@ -123,7 +121,6 @@ src/main_trainer.py \
 --beta1 0.9 \
 --beta2 0.95 \
 --llm_input_len 1024 \
---warmup 3000 \
 --epochs 10 \
 --num_workers 16 \
 --distributed \
