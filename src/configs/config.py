@@ -77,7 +77,7 @@ def get_args(mode: Mode) -> argparse.Namespace:
         parser.add_argument("--muon_adamw_lr_ratio", type=float, default=0.015, help="AdamW LR as fraction of Muon LR")
         parser.add_argument("--lr_schedule", type=str, default="constant", choices=["constant", "cosine", "inv_sqrt"], help="LR schedule after warmup")
         parser.add_argument("--min_lr_ratio", type=float, default=0.1, help="Min LR as fraction of peak LR (for cosine schedule)")
-        parser.add_argument("--warmup", type=int, default=500, help="Warmup steps")
+        parser.add_argument("--warmup_ratio", type=float, default=0.1, help="Warmup steps as fraction of total training steps")
         parser.add_argument("--ref_global_bs", type=int, default=None)
         parser.add_argument("--grad_accum_steps", type=int, default=1)
         parser.add_argument("--grad_clip", type=float, default=0.0, help="Max gradient norm for clipping (0 to disable)")

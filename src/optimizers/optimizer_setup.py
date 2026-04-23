@@ -55,7 +55,7 @@ class Optimizer:
     def __init__(self, model, args):
         self.args = args
         self.n_current_steps = 0
-        self.n_warmup_steps = args.warmup
+        self.n_warmup_steps = int(args.max_steps * args.warmup_ratio)
         self.eff_bs = self._effective_global_bs()
         self.scale = self._compute_scale()
         self.peak_lr = args.lr * self.scale
