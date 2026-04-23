@@ -18,7 +18,8 @@ COMMON_FLAGS=(
     --num_encoder_tokens 50 \
     --distributed
     --system_prompt "$SYSTEM_PROMPT"
-    --llm qwen2.5-1.5b-instruct
+    --llm qwen2.5-3b-instruct
+    --gradient_checkpointing
     --wandb
 )
 
