@@ -311,6 +311,8 @@ class Base(Dataset):
         print("=" * 100)
 
     def assert_range_alignment(self, input_ids: List[int], ranges: List[Tuple[int, int]]) -> None:
+        if getattr(self.args, "train_phase", "sft") == "pretrain":
+            return
         wt = HF_LLMS[self.args.llm]["watch_tokens"]
         START = wt["response_start"]["order"]
         EOS = set(wt["eos_token"].keys() if isinstance(wt["eos_token"], dict) else wt["eos_token"])
