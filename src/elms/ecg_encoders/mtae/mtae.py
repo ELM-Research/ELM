@@ -1,6 +1,6 @@
 # Original work Copyright (c) Meta Platforms, Inc. and affiliates. <https://github.com/facebookresearch/mae>
 # Modified work Copyright 2024 ST-MEM paper authors. <https://github.com/bakqui/ST-MEM>
-# Modified work Copyright 2025 ECG-Bench authors. <https://github.com/willxxy/ECG-Bench>
+# Modified work Copyright 2025 ECG-Language-Models authors. <https://github.com/ELM-Research/ECG-Language-Models>
 
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this repository https://github.com/bakqui/ST-MEM.

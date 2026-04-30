@@ -53,12 +53,12 @@ class DatasetMixer:
     def build_hf_dataset(self, data_name):
         if self.args.mode in ["train", "post_train"]:
             data = load_dataset(
-                f"willxxy/{data_name}",
+                f"ELM-Research/{data_name}",
                 split=f"fold{self.args.fold}_train",
             ).with_transform(self.decode_batch)
         elif self.args.mode in ["eval", "inference"]:
             data = load_dataset(
-                f"willxxy/{data_name}",
+                f"ELM-Research/{data_name}",
                 split=f"fold{self.args.fold}_test",
             ).with_transform(self.decode_batch)
         if self.args.data_subset:
