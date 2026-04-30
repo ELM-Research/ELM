@@ -109,8 +109,10 @@ class Base(Dataset):
     def create_labels(self, input_ids: list[int]) -> list[int]:
         if getattr(self.args, "train_phase", "sft") == "pretrain":
             sig = self.llm_tokenizer.convert_tokens_to_ids(SIGNAL_TOKEN_PLACEHOLDER)
-            pad = self.llm_tokenizer.pad_token_id
-            return [-100 if t in (sig, pad) else t for t in input_ids]
+            bos = next(iter(HF_LLMS[self.args.llm]["watch_tokens"]["bos_token"]))
+            last_sig = max((i for i, t in enumerate(input_ids) if t == sig), default=-1)
+            prefix_end = last_sig + 2 if last_sig >= 0 else (input_ids.index(bos) + 1 if bos in input_ids else 0)
+            return [-100 if i < prefix_end else t for i, t in enumerate(input_ids)]
         wt = HF_LLMS[self.args.llm]["watch_tokens"]
         BOS = set(wt["bos_token"].keys() if isinstance(wt["bos_token"], dict) else wt["bos_token"])
         EOS = set(wt["eos_token"].keys() if isinstance(wt["eos_token"], dict) else wt["eos_token"])
@@ -164,7 +166,7 @@ class Base(Dataset):
             wt = HF_LLMS[self.args.llm]["watch_tokens"]
             bos = next(iter(wt["bos_token"].values()))
             eos = next(iter(wt.get("final_eos_token", wt["eos_token"]).values()))
-            sigs = "" if self.args.perturb == "only_text" else " ".join([SIGNAL_TOKEN_PLACEHOLDER] * self.args.num_encoder_tokens) + "\n"
+            sigs = "" if self.args.perturb == "only_text" else "".join([SIGNAL_TOKEN_PLACEHOLDER] * self.args.num_encoder_tokens) + "\n"
             return f"{bos}{sigs}{text}{eos}"
         prompt = self.chat_template.copy()
         turn_count = 0
@@ -172,7 +174,7 @@ class Base(Dataset):
         if self.args.perturb == "only_text":
             signal_token_placeholders = ""
         else:
-            signal_token_placeholders = " ".join([SIGNAL_TOKEN_PLACEHOLDER] * self.args.num_encoder_tokens) + "\n"
+            signal_token_placeholders = "".join([SIGNAL_TOKEN_PLACEHOLDER] * self.args.num_encoder_tokens) + "\n"
 
         for turn in text:
             if self.args.dev and is_main():
@@ -310,6 +312,8 @@ class Base(Dataset):
         print("=" * 100)
 
     def assert_range_alignment(self, input_ids: List[int], ranges: List[Tuple[int, int]]) -> None:
+        if getattr(self.args, "train_phase", "sft") == "pretrain":
+            return
         wt = HF_LLMS[self.args.llm]["watch_tokens"]
         START = wt["response_start"]["order"]
         EOS = set(wt["eos_token"].keys() if isinstance(wt["eos_token"], dict) else wt["eos_token"])
